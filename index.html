@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faith Chords Live - 98 Worship Songs Hub</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tone.js for Web Audio Metronome -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            stage: {
+              900: '#0a0d14',
+              800: '#111726',
+              700: '#1e293b',
+              accent: '#38bdf8',
+              gold: '#facc15',
+              green: '#10b981'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0a0d14; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .chord-badge { transition: all 0.15s ease-in-out; }
+    .chord-badge:hover { transform: scale(1.05); }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; color: black !important; }
+    }
+  </style>
+</head>
+<body class="bg-stage-900 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-stage-accent selection:text-black">
+
+  <!-- TOP APP HEADER -->
+  <header class="no-print border-b border-slate-800 bg-stage-800/90 backdrop-blur sticky top-0 z-50 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+        <i class="ph-bold ph-music-notes text-white text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          Faith Chords Live
+          <span id="totalSongCountBadge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">98 Songs</span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- Top Action Toolbar -->
+    <div class="flex items-center flex-wrap gap-2">
+      <!-- Metronome Button -->
+      <button id="toggleMetroBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 text-xs font-medium transition">
+        <i class="ph-bold ph-metronome text-sky-400"></i>
+        <span class="hidden sm:inline">Metronome</span>
+        <span id="metroBpmBadge" class="text-[10px] bg-slate-900 text-sky-300 font-mono px-1.5 py-0.5 rounded">120</span>
+      </button>
+
+      <!-- Push All PDF Songs to Cloud Button -->
+      <button id="syncAllCloudBtn" title="Upload all preloaded PDF songs into Firebase Cloud" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 text-xs font-semibold transition">
+        <i class="ph-bold ph-cloud-arrow-up"></i>
+        <span id="syncAllBtnText">Sync All 98 to Cloud</span>
+      </button>
+
+      <!-- Cloud Status Indicator -->
+      <div id="cloudStatusBtn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
+        <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="syncLabel" class="hidden lg:inline font-mono">Live Sync</span>
+      </div>
+
+      <!-- Edit Current Song Button -->
+      <button id="topEditSongBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition">
+        <i class="ph-bold ph-pencil-simple"></i>
+        <span class="hidden sm:inline">Edit</span>
+      </button>
+
+      <!-- New Song Button -->
+      <button id="newSongBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold transition shadow-md shadow-sky-500/20">
+        <i class="ph-bold ph-plus"></i>
+        <span>Add Song</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- METRONOME DRAWER -->
+  <div id="metroDrawer" class="no-print hidden border-b border-slate-800 bg-slate-950/95 px-4 py-3 flex-wrap items-center justify-between gap-4 transition-all">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2">
+        <label class="text-xs text-slate-400 uppercase font-mono">Tempo</label>
+        <input type="number" id="bpmInput" value="120" min="40" max="250" class="w-16 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-center text-sm font-mono text-white">
+        <span class="text-xs text-slate-500">BPM</span>
+      </div>
+      <input type="range" id="bpmSlider" min="40" max="220" value="120" class="w-32 sm:w-48 accent-sky-400">
+    </div>
+    <div class="flex items-center space-x-3">
+      <div id="metroLight" class="w-5 h-5 rounded-full bg-slate-800 border border-slate-600 transition"></div>
+      <button id="playMetroBtn" class="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1.5">
+        <i class="ph-fill ph-play" id="playMetroIcon"></i>
+        <span id="playMetroLabel">Start Beat</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+    
+    <!-- LEFT SIDEBAR: Song Library -->
+    <aside id="songSidebar" class="no-print w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800 bg-stage-800 flex flex-col shrink-0">
+      <div class="p-3 border-b border-slate-700/60 space-y-2">
+        <div class="relative">
+          <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
+          <input type="text" id="searchSongs" placeholder="Search 98 songs by title or key..." 
+                 class="w-full pl-9 pr-3 py-1.5 bg-stage-900 border border-slate-700 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500 text-white">
+        </div>
+        <!-- Key Filter Pills -->
+        <div class="flex items-center gap-1 overflow-x-auto pb-1 text-[11px] font-mono" id="keyFilterBar">
+          <button data-key="ALL" class="key-pill px-2 py-0.5 rounded bg-sky-500 text-slate-950 font-bold shrink-0">All Keys</button>
+          <button data-key="C" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">C</button>
+          <button data-key="C#" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">C#</button>
+          <button data-key="D" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">D</button>
+          <button data-key="Eb" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">Eb</button>
+          <button data-key="E" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">E</button>
+          <button data-key="F" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">F</button>
+          <button data-key="F#" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">F#</button>
+          <button data-key="G" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">G</button>
+          <button data-key="A" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">A</button>
+          <button data-key="B" class="key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0">B</button>
+        </div>
+      </div>
+      <div id="songsListContainer" class="flex-1 overflow-y-auto p-2 space-y-1.5 max-h-60 md:max-h-[calc(100vh-140px)]">
+        <!-- Rendered Dynamically -->
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN PANEL -->
+    <main class="flex-1 flex flex-col bg-stage-900 overflow-y-auto" id="stageScroller">
+
+      <!-- STAGE CONTROLS BAR -->
+      <section id="stageControlsBar" class="no-print p-3 sm:px-6 bg-stage-800/40 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20 backdrop-blur">
+        
+        <!-- View Mode: Nashville Numbers vs Real Chords -->
+        <div class="flex items-center bg-slate-900 p-1 rounded-lg border border-slate-700/80">
+          <button id="viewNotationNumber" class="px-3 py-1 rounded text-xs font-semibold bg-sky-500 text-slate-950 transition">Numbers (1 2m 3)</button>
+          <button id="viewNotationChords" class="px-3 py-1 rounded text-xs font-semibold text-slate-300 hover:text-white transition">Chords (C#m E)</button>
+        </div>
+
+        <!-- Key & Transpose Controls -->
+        <div class="flex items-center space-x-2">
+          <label class="text-xs text-slate-400 font-mono uppercase">Transpose Key:</label>
+          <select id="keySelect" class="bg-stage-900 border border-slate-700 text-sky-400 font-bold text-sm rounded-lg px-2.5 py-1 focus:outline-none">
+            <option value="C">C</option>
+            <option value="C#">C# / Db</option>
+            <option value="D">D</option>
+            <option value="Eb">Eb / D#</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+            <option value="F#">F# / Gb</option>
+            <option value="G">G</option>
+            <option value="Ab">Ab / G#</option>
+            <option value="A">A</option>
+            <option value="Bb">Bb</option>
+            <option value="B">B</option>
+          </select>
+          <select id="tonalitySelect" class="bg-stage-900 border border-slate-700 text-slate-200 text-sm rounded-lg px-2 py-1">
+            <option value="minor">Minor (m)</option>
+            <option value="major">Major</option>
+          </select>
+        </div>
+
+        <!-- Stage Helpers -->
+        <div class="flex items-center space-x-2">
+          <button id="fontDownBtn" class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 border border-slate-700 text-xs font-mono font-bold">A-</button>
+          <button id="fontUpBtn" class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 border border-slate-700 text-xs font-mono font-bold">A+</button>
+          <div class="flex items-center bg-slate-900 rounded-lg border border-slate-700 px-2 py-1 gap-1.5">
+            <button id="autoScrollToggleBtn" class="text-xs flex items-center gap-1 text-slate-300 hover:text-sky-400">
+              <i class="ph-bold ph-arrows-down-up"></i>
+              <span id="scrollStateText">Scroll</span>
+            </button>
+            <input type="range" id="scrollSpeed" min="1" max="10" value="2" class="w-16 h-1 accent-sky-400">
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE PERFORMANCE CANVAS -->
+      <section id="stageView" class="p-4 sm:p-8 max-w-4xl mx-auto w-full flex-1">
+        <!-- Rendered dynamically -->
+      </section>
+
+      <!-- SONG EDITOR PANEL -->
+      <section id="editorView" class="hidden p-4 sm:p-8 max-w-4xl mx-auto w-full flex-1">
+        <div class="bg-stage-800 border border-slate-700/80 rounded-2xl p-4 sm:p-6 shadow-2xl">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-700 mb-6">
+            <div>
+              <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <i class="ph-bold ph-note-pencil text-amber-400"></i>
+                <span id="editorTitleText">Edit Song</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Changes automatically sync to Firebase Cloud for the whole band.</p>
+            </div>
+            <button id="cancelEditBtn" class="text-xs text-slate-300 hover:text-white px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700">
+              <i class="ph-bold ph-x mr-1"></i> Close
+            </button>
+          </div>
+
+          <form id="songForm" class="space-y-5">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-mono uppercase text-slate-400 mb-1">Song Title (Tamil / English)</label>
+                <input type="text" id="formTitle" required placeholder="Song Title" 
+                       class="w-full px-3 py-2 bg-stage-900 border border-slate-700 rounded-lg text-white font-medium focus:outline-none focus:border-sky-500">
+              </div>
+              <div>
+                <label class="block text-xs font-mono uppercase text-slate-400 mb-1">Original Key</label>
+                <div class="flex gap-1.5">
+                  <select id="formKey" class="w-1/2 px-2 py-2 bg-stage-900 border border-slate-700 rounded-lg text-sky-400 font-bold">
+                    <option value="C">C</option>
+                    <option value="C#">C#</option>
+                    <option value="D">D</option>
+                    <option value="Eb">Eb</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                    <option value="F#">F#</option>
+                    <option value="G">G</option>
+                    <option value="Ab">Ab</option>
+                    <option value="A">A</option>
+                    <option value="Bb">Bb</option>
+                    <option value="B">B</option>
+                  </select>
+                  <select id="formTonality" class="w-1/2 px-2 py-2 bg-stage-900 border border-slate-700 rounded-lg text-white text-xs">
+                    <option value="minor">Minor</option>
+                    <option value="major">Major</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-mono uppercase text-slate-400 mb-1">Tempo (BPM)</label>
+                <input type="number" id="formBpm" value="120" min="40" max="250" 
+                       class="w-full px-3 py-2 bg-stage-900 border border-slate-700 rounded-lg text-white font-mono">
+              </div>
+            </div>
+
+            <!-- Quick Pad -->
+            <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-700/80 sticky top-14 z-30 backdrop-blur">
+              <div class="text-[11px] font-mono text-sky-400 uppercase font-semibold mb-2">
+                <i class="ph-fill ph-lightning mr-1"></i>Quick Keypad (Tap to insert into active section):
+              </div>
+              <div class="flex flex-wrap gap-1.5 font-mono text-xs">
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">1</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">1m</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">2</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">2m</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">2m(maj)</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">3</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">3m</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">3m(maj)</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">4</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">5</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-sky-500 hover:text-slate-950 rounded text-sky-300 font-bold border border-slate-700">6m</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 border border-slate-700">|</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 border border-slate-700">-</button>
+                <button type="button" class="quick-insert px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-amber-300 border border-slate-700">(2)</button>
+              </div>
+            </div>
+
+            <!-- Sections Area -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-xs font-mono uppercase text-slate-400">Song Sections (Chorus, Stanza, Bridge)</label>
+                <button type="button" id="addSectionRowBtn" class="px-3 py-1 bg-sky-500/10 border border-sky-500/30 rounded-lg text-xs text-sky-400 hover:bg-sky-500/20 flex items-center gap-1 font-semibold">
+                  <i class="ph-bold ph-plus-circle"></i> Add Section
+                </button>
+              </div>
+              <div id="sectionRowsContainer" class="space-y-3"></div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="pt-4 border-t border-slate-700 flex flex-wrap items-center justify-between gap-3">
+              <button type="button" id="deleteSongBtn" class="px-3.5 py-2 bg-red-950/80 text-red-400 border border-red-800/80 hover:bg-red-900 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                <i class="ph-bold ph-trash"></i> Delete Song
+              </button>
+              <div class="flex items-center space-x-3 ml-auto">
+                <button type="button" id="cancelFormBottomBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-lg text-xs sm:text-sm shadow-lg shadow-sky-500/20 flex items-center gap-1.5">
+                  <i class="ph-bold ph-check-circle"></i>
+                  <span>Save Changes & Sync</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- FIREBASE & APPLICATION LOGIC -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA3IpIgEt9wHg1ADfZOAwxMkODu6kGtKjo",
+      authDomain: "faith-chords-for-band.firebaseapp.com",
+      projectId: "faith-chords-for-band",
+      storageBucket: "faith-chords-for-band.firebasestorage.app",
+      messagingSenderId: "311110943704",
+      appId: "1:311110943704:web:3b3ffa7590a5ad72c468ad",
+      measurementId: "G-DX7R9RGWEE"
+    };
+
+    let db = null;
+    const syncLabel = document.getElementById('syncLabel');
+    const syncDot = document.getElementById('syncDot');
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      getAnalytics(app);
+      db = getFirestore(app);
+      syncLabel.innerText = "Live Cloud Sync";
+    } catch(err) {
+      console.warn("Local mode fallback:", err);
+      syncLabel.innerText = "Local Mode";
+    }
+
+    // =========================================================================
+    // COMPLETE 98 WORSHIP SONGS TRANSCRIBED FROM YOUR HANDWRITTEN SHEETS & PDF
+    // =========================================================================
+    const initialSongs = [
+      { id: "s001", title: "இஸ்ரவேலின் ராஜாவே (Isravelin Rajave)", key: "C#", tonality: "minor", bpm: 125, sections: [
+        { label: "இஸ்ரவேலின் (Chorus)", lines: ["- | 1 | 3m 1m", "1 | 2m(maj)", "3m | 1m", "3 2 | 3m(maj) (2)"] },
+        { label: "இயேசுவே (Bridge)", lines: ["3 2 | 1m", "3m | 2m | 1m"] },
+        { label: "நன்றி (Ending)", lines: ["1 | 2m | 1", "3 2 | 1m"] }
+      ]},
+      { id: "s002", title: "Paaduvane Magilvaene (பாடுவனே மகிழ்வேனே)", key: "E", tonality: "major", bpm: 118, sections: [
+        { label: "Intro / Chorus", lines: ["1 | 2m", "3 | 2m"] },
+        { label: "Kondaduvom", lines: ["1 / 3mM | -"] },
+        { label: "Raja", lines: ["1 2 | 1m", "3mM | 2m", "1 | 2m (2)", "3m 2m | 1"] },
+        { label: "நன்றி (Tag)", lines: ["2m 3 | 1m", "2m 3 | 1m"] }
+      ]},
+      { id: "s003", title: "நீர் என் பெலனும் என் கேடகமாம் (Neer En Belanum)", key: "A", tonality: "major", bpm: 115, sections: [
+        { label: "நீர் என் பெலனும் (Chorus)", lines: ["1 | 2 | 3 | 1 (2)", "1m | 2m | 3 | 1", "2 | 3 1"] },
+        { label: "உம்மை போற்றுவேன் (Bridge)", lines: ["3 | 2 | 3m (2)", "2m | 3 | 1"] },
+        { label: "Stanza", lines: ["1 | 2 | 3 | 3m (2)", "2 | 3 | 1"] }
+      ]},
+      { id: "s004", title: "ஆத்துமாவே என் முழு உள்ளமே (Aathumave En Mulu Ullame)", key: "E", tonality: "major", bpm: 120, sections: [
+        { label: "ஆத்துமாவே (Chorus)", lines: ["1 2 | 3 | 2m | 3", "1 2 | 3 | 2m | 3 1"] },
+        { label: "Stanza", lines: ["1 2m | 3 | 2m | 3 1", "1 2m | 3 | 2m | 1 (2)"] }
+      ]},
+      { id: "s005", title: "என் இயலாமையில் நினைத்தீரையா (En Iyalamaiyil)", key: "A", tonality: "major", bpm: 105, sections: [
+        { label: "என் இயலாமையில் (Chorus)", lines: ["1 | 3m | 2 3 (2)", "3 | 2m | 1", "1m (2) | 3 1"] },
+        { label: "என் தேவன் (Stanza)", lines: ["1m | 2 | 3 | 1"] }
+      ]},
+      { id: "s006", title: "தாயின் வயிற்றில் தோன்றின (Thayin Vayitril - Maraven)", key: "D", tonality: "major", bpm: 118, sections: [
+        { label: "தாயின் வயிற்றில் (Chorus)", lines: ["1 | 3m | 1m | 3", "2m | 2 | 1"] },
+        { label: "மறவேன் (Refrain)", lines: ["1 | 2 (2)", "2m | 3 | 1"] },
+        { label: "கர்த்தர் (Stanza)", lines: ["2 | 2m | 3 1"] }
+      ]},
+      { id: "s007", title: "ஆதி கீதமே பாடியே (Aathi Geethame Paadiye)", key: "F", tonality: "major", bpm: 120, sections: [
+        { label: "ஆதி கீதமே (Chorus)", lines: ["1 | 2 | 2m | 3", "2 | 1"] },
+        { label: "ஜோதியின்", lines: ["2 | 3 | 2m | 3 1"] },
+        { label: "Stanza (தந்தைபோல்)", lines: ["1 2 | 2m | 3", "2 | 2m | 3 1 (2)"] }
+      ]},
+      { id: "s008", title: "எல்லா நாமத்திற்கும் மேலானவர் (Ella Namathirkum)", key: "G", tonality: "major", bpm: 110, sections: [
+        { label: "எல்லா நாமத்திற்கும் (Chorus)", lines: ["1 | 2 | 3 | 1m", "2 | 3 1"] },
+        { label: "உம்மைப்போல் / பாத்திரர் நீரே", lines: ["2m | 3 | 2 | 3 1 (2)", "3m | 1m | 2m | 3"] },
+        { label: "Stanza", lines: ["3m | 3 | 2 | 2m", "1m | 3 | 2 | 3m", "2m | 1"] }
+      ]},
+      { id: "s009", title: "வானத்திலும் இந்த பூமியிலும் (Vaanathilum Intha Boomyilum)", key: "G", tonality: "minor", bpm: 124, sections: [
+        { label: "வானத்திலும் (Chorus)", lines: ["1 | 3m (2)", "2m | 3m | 1m"] },
+        { label: "அவர் நாமம் (Bridge)", lines: ["2m | 3m | 2m(maj) | 3m 1m"] },
+        { label: "இரட்சிக்க வல்லமையான (Stanza)", lines: ["2 | 2m 1 (2)", "2m | 1"] }
+      ]},
+      { id: "s010", title: "கன்மலையானவர் (Kanmalai Aanavar)", key: "F", tonality: "major", bpm: 120, sections: [
+        { label: "Kanmalai (Chorus)", lines: ["1 | 3 | 1m | 3"] },
+        { label: "Neer En Belan", lines: ["1 / 1m | 3m (2)", "3 | 2 | 3 | 1m (2)"] },
+        { label: "Stanza", lines: ["1 | 2 | 2m | 3", "1 | 2 / 1m | 2m (2)", "3 | 1"] }
+      ]},
+      { id: "s011", title: "தேவ பிரசன்னம் (Deva Prasannam)", key: "A", tonality: "minor", bpm: 108, sections: [
+        { label: "தேவ பிரசன்னம் (Chorus)", lines: ["1 | 3m | 2m 1m", "1 3m (2) | 2m(maj) | 2m"] },
+        { label: "பிரசன்னம் (Stanza)", lines: ["2m | 3m | 2m 1", "3m | 2m (2)", "1m | 3m | 2m | 1"] }
+      ]},
+      { id: "s012", title: "இயேசுவே உம் அருகினிலே (Yesuve Um Aruginile)", key: "B", tonality: "major", bpm: 112, sections: [
+        { label: "Yesuve (Chorus)", lines: ["1 | 3 | 2 | 3"] },
+        { label: "Enneramum", lines: ["1 | 2 | 3"] },
+        { label: "Repeat / End", lines: ["1m | 3 | 2 | 1"] }
+      ]},
+      { id: "s013", title: "உயிருள்ளவரை பாடுவேன் (Uyirullavarai Paaduven)", key: "E", tonality: "major", bpm: 122, sections: [
+        { label: "Chorus", lines: ["1 | 2m | 3 | 2m", "3 | 1"] },
+        { label: "Bridge", lines: ["1 | 3 | 1m | 2", "3m(maj) | 2 | 3 | 3m"] },
+        { label: "Stanza", lines: ["1 | 2 | 3 | 2m", "1 | 1m(maj) | 2m | 3 1"] }
+      ]},
+      { id: "s014", title: "இயேசுவே ஆண்டவர் (Yesuve Aandavar)", key: "F", tonality: "minor", bpm: 120, sections: [
+        { label: "Yesuve (Chorus)", lines: ["1 | 2m (2)", "3m | 2m | 1"] },
+        { label: "Stanza", lines: ["1 (2) | 3m | 2m", "3 | 2 (2)", "3m | 2m | 1"] }
+      ]},
+      { id: "s015", title: "அனைத்தையும் அருளிடும் (Anaithaiyum Arulidum)", key: "D", tonality: "minor", bpm: 118, sections: [
+        { label: "Anaithaiyum (Chorus)", lines: ["1 | 3m | 2m | 1"] },
+        { label: "Vala Karam", lines: ["1 | 1m7 | 3m", "2m | 2m(maj) | 1"] },
+        { label: "Yegovah", lines: ["1 | 2m (2)", "3m | 1m | 2m"] },
+        { label: "Stanza", lines: ["1 | 2m | 3m", "2m | 2m(maj) | 1"] }
+      ]},
+      { id: "s016", title: "ஓசன்னா ஓசன்னா (Hosanna Hosanna)", key: "G", tonality: "major", bpm: 126, sections: [
+        { label: "Hosanna (Chorus)", lines: ["1 | 3 (2)", "1m | 3"] },
+        { label: "Lord We Lift", lines: ["2 | 1 | 3 | 1m"] },
+        { label: "Hosanna Tag", lines: ["2m | 3 | 2 | 1"] }
+      ]},
+      { id: "s017", title: "துதிப்பேன் உம்மை துதிப்பேன் (Thuthipen Ummai Thuthipen)", key: "G", tonality: "major", bpm: 124, sections: [
+        { label: "Thuthipen (Chorus)", lines: ["1 | 2 1 (2)"] },
+        { label: "Paninthu", lines: ["2 | 3m (2)", "3 | 1m (2)", "2m | 3 | 1"] },
+        { label: "Rajathi Raja", lines: ["1 | 1m | 3 | 2m"] },
+        { label: "Stanza", lines: ["1 3 | 1m (2)", "3 | 2m | 1"] }
+      ]},
+      { id: "s018", title: "இயேசுவே உமது மாசில்லாத (Yesuve Umathu Maasillatha)", key: "C", tonality: "major", bpm: 110, sections: [
+        { label: "Yesuve (Chorus)", lines: ["1 | 2 | 1 | 3"] },
+        { label: "Stanza", lines: ["2 (2) | 3m", "3 | 2m | 1m | 1"] }
+      ]},
+      { id: "s019", title: "யோசனையில் பெரியவரே (Yosanaiyil Periyavare)", key: "G", tonality: "minor", bpm: 122, sections: [
+        { label: "Yosanaiyil (Chorus)", lines: ["1 | 2m(maj) | 1m | 2m | 1"] },
+        { label: "Seyalill", lines: ["1 2 | 1m | 3m | 2m", "2m(maj) | 1"] },
+        { label: "Hosanna", lines: ["1 | 2m(maj) | 3m | 1m", "2m(maj) | 1"] }
+      ]},
+      { id: "s020", title: "சாரோனின் ரோஜாவே (Saronin Rojave)", key: "G", tonality: "minor", bpm: 116, sections: [
+        { label: "Saronin (Chorus)", lines: ["1 | 3 | 3m | 1m", "2m(maj) (2)"] },
+        { label: "Alagullavar", lines: ["2 | 3m (2)", "1m | 2 | 1 | 3"] },
+        { label: "Hosanna / Stanza", lines: ["1 2 | 1m | 2 | 3m", "2 | 2m(maj) | 1 3 2 1"] }
+      ]},
+      { id: "s021", title: "அன்பு கூறுவேன் (Anbukuruven)", key: "G", tonality: "minor", bpm: 112, sections: [
+        { label: "Anbukuruven (Chorus)", lines: ["1 | 2 | 3 | 3m", "1 | 2 | 1 | 3"] },
+        { label: "Ummai", lines: ["1 | 3m (2) | 2"] },
+        { label: "Aarathanai", lines: ["3 | 2 | 1 (2)", "3m | 2m | 3m(maj) | 1"] },
+        { label: "Stanza", lines: ["3m | 2m | 3 | 2m | 1", "1 2 1m (2) | 2 (2) | 1"] }
+      ]},
+      { id: "s022", title: "உன்னதர் மாட்சிமை நிறைந்தவரே (Unnathar Maatchimai)", key: "E", tonality: "minor", bpm: 120, sections: [
+        { label: "உன்னதர் (Chorus)", lines: ["1 | 2m | 1", "3m | 2m 1"] },
+        { label: "எரிகோ (Bridge)", lines: ["2m (2) | 3m | 2m"] },
+        { label: "Stanza", lines: ["2m(maj) | 2 1 | 1m", "3m 2m (2) | 3m | 2 1"] }
+      ]},
+      { id: "s023", title: "துதித்துப் பாடிட பாத்திரமே (Thuthithu Paadida Paathirame)", key: "A", tonality: "major", bpm: 120, sections: [
+        { label: "துதித்துப் பாடிட (Chorus)", lines: ["1 | 2 | 1m | 2m", "2 | 3 1"] },
+        { label: "ஆ அற்புதம்", lines: ["1 7 | 2 | 2m | 3 | 3m"] },
+        { label: "நன்றியால் (Stanza)", lines: ["1m | 2m | 2 | 3 1 (2)"] }
+      ]},
+      { id: "s024", title: "வாலாக்காமல் என்னை (Vaalakkamal Ennai)", key: "E", tonality: "minor", bpm: 126, sections: [
+        { label: "வாலாக்காமல் (Chorus)", lines: ["1 | 3m | 2m(maj) | 2m (2)", "2m | 3m | 2m (2)"] },
+        { label: "Stanza", lines: ["1 | 2m | 3m | 2m | 1"] }
+      ]},
+      { id: "s025", title: "உம் அழகான கண்கள் (Um Azhagana Kangal)", key: "E", tonality: "major", bpm: 108, sections: [
+        { label: "உம் அழகான (Chorus)", lines: ["1 | 1m | 2 3 | 2 3 1"] },
+        { label: "Stanza", lines: ["3m | 1m | 3m | 2 3 (2)"] }
+      ]},
+      { id: "s026", title: "அலங்கார வாசலாலே (Alangara Vaasalale)", key: "G", tonality: "major", bpm: 125, sections: [
+        { label: "அலங்கார (Chorus)", lines: ["1 | 2m | 3 | 1", "1m | 2m | 3 | 1"] },
+        { label: "Bridge", lines: ["1 | 1 3 1m | 1m 3 1", "1 | 2 1 | 2m | 3 1"] },
+        { label: "Stanza", lines: ["1 | 3m | 1m | 3m", "2m | 3 | 1"] }
+      ]},
+      { id: "s027", title: "கூடுமே எல்லாம் கூடுமே (Koodume Ellam Koodume)", key: "C", tonality: "major", bpm: 124, sections: [
+        { label: "கூடுமே (Chorus)", lines: ["1 | 1m | 2 | 3", "2m | 2 | 3 1"] },
+        { label: "Stanza", lines: ["2 | 3 | 3m (2)", "2m | 3 (2) | 1"] }
+      ]},
+      { id: "s028", title: "மலைகள் விலகிப்போனாலும் (Malaigal Vilagi Ponalum)", key: "G", tonality: "major", bpm: 118, sections: [
+        { label: "மலைகள் (Chorus)", lines: ["1 / 1m | 2m | 3 | 1 (2)", "2 | 3 | 2m | 3 1 (2)"] },
+        { label: "Stanza", lines: ["1 | 2m | 3 | 1 (2)", "1m | 2m | 3 | 3 1 (2)"] }
+      ]},
+      { id: "s029", title: "என்னை கண்டவரே (Ennai Kandavare)", key: "C", tonality: "major", bpm: 116, sections: [
+        { label: "Ennai Kandavare (Chorus)", lines: ["1 | 2 (2)", "2m | 3 | 1"] },
+        { label: "Bridge", lines: ["1 / 1m | 2 (2)", "2m | 3 | 1"] },
+        { label: "Stanza", lines: ["1 | 1m | 2 | 2m", "3 | 1"] }
+      ]},
+      { id: "s030", title: "ஒருவரும் சேரா ஒளியினிலே (Oruvarum Sera Oliyinile)", key: "E", tonality: "major", bpm: 110, sections: [
+        { label: "Oruvarum (Chorus)", lines: ["1 3 | 2m | 1m 3 | 3m(maj) 1m", "3m 1m | 3m(maj) | 2 1 (2)"] },
+        { label: "Stanza (Ummai Allamal)", lines: ["2m | 1m | 2m | 3", "2 | 3 | 1"] }
+      ]},
+      { id: "s031", title: "மகிமை மாட்சிமை (Magimai Maatchimai)", key: "D", tonality: "minor", bpm: 122, sections: [
+        { label: "Magimai (Chorus)", lines: ["1 | 2m | 3m | 1m", "3m | 3m(maj) | 2m | 1", "2m | 3m | 2m | 1"] },
+        { label: "Parisutha (Bridge)", lines: ["1 | 2m | 3m | 2m (2)", "3m(maj) | 1m | 2m (2)"] }
+      ]},
+      { id: "s032", title: "போதிக்க (Pothikka / Chorus Sheet)", key: "D", tonality: "major", bpm: 115, sections: [
+        { label: "Chorus", lines: ["1 | 2 (2) | 3 1", "1m | 2m | 3 1"] },
+        { label: "Refrain", lines: ["1 2 | 2m | 3m(maj) (2)"] },
+        { label: "Stanza", lines: ["1 2 | 3 1 | 2m | 3m (2)", "2m | 3 | 3 1"] }
+      ]},
+      { id: "s033", title: "உமக்கு நிகரானவர் (Umakku Nigaranavar / Enakku Niraivana)", key: "A", tonality: "minor", bpm: 114, sections: [
+        { label: "Chorus", lines: ["1 | 3m | 2 | 2m(maj) 1 (2)", "1 | 2m | 3m | 1 1m 2m"] },
+        { label: "Um Munne", lines: ["1m | 1 (2)"] },
+        { label: "Stanza", lines: ["1 | 3m | 2 | 2m | 3m | 1"] }
+      ]},
+      { id: "s034", title: "பகல் நேர பாடல் நீரே (Pagal Nera Paadal Neere)", key: "D", tonality: "major", bpm: 115, sections: [
+        { label: "Pagal Nera (Chorus)", lines: ["1 | 1m | 2m | 3", "3m | 2 | 3 | 2m", "3m(maj) | 1m | 2m | 3 1"] },
+        { label: "Stanza", lines: ["3 | 2 | 3 | 2", "2m | 3 1 (2)"] }
+      ]},
+      { id: "s035", title: "உமது முகம் நோக்கி பார்த்தவர்கள் (Umathu Mugam)", key: "D", tonality: "minor", bpm: 120, sections: [
+        { label: "Umathu Mugam (Chorus)", lines: ["1 | 3m(maj) | 2m | 1", "3 | 2m | 1m | 2 (2)"] },
+        { label: "Stanza", lines: ["3 | 2m | 1m | 3m", "1 | 2m (2)", "2m | 3m (2) | 1"] }
+      ]},
+      { id: "s036", title: "உம்மைத்தான் நான் பார்க்கிறேன் (Ummai Thaan Naan Parkiren)", key: "D", tonality: "minor", bpm: 118, sections: [
+        { label: "Ummai Thaan (Chorus)", lines: ["1 | 2m(maj) | 3m | 2m | 1"] },
+        { label: "Avarum", lines: ["1 | 1m | 2 | 1 3", "2m (2) | 1 | 3 | 2 | 2m"] },
+        { label: "Stanza", lines: ["2m | 1 | 2 | 2m(maj) (2)", "3 | 2m | 1 (2)"] }
+      ]},
+      { id: "s037", title: "தூக்கி சுமப்பீரே (Thooki Sumapeer)", key: "D", tonality: "major", bpm: 112, sections: [
+        { label: "Thooki (Chorus)", lines: ["1 / 1m | 2m (2)", "3 | 2 | 1"] },
+        { label: "Stanza", lines: ["1 (2) | 2m | 3 | 1"] }
+      ]},
+      { id: "s038", title: "இந்த கல்லின் மேல் (Intha Kallin Mel)", key: "C", tonality: "major", bpm: 124, sections: [
+        { label: "Intha Kallin (Chorus)", lines: ["1 | 2 | 3 1 (2)", "2 | 1"] },
+        { label: "Hallelujah", lines: ["2 1 | 3 | 2 | 1"] },
+        { label: "Stanza", lines: ["2m | 2 | 3 | 3m (2)", "2 3 | 2m 3 (2) | 2 3 1"] }
+      ]},
+      { id: "s039", title: "இயேசுவே நீர் நல்லவர் (Yesuve Neer Nallavar)", key: "D", tonality: "major", bpm: 116, sections: [
+        { label: "Yesuve (Chorus)", lines: ["1 | 2 | 3 (2)"] },
+        { label: "Udaikapetta", lines: ["1m | 3 | 2 | 3"] },
+        { label: "Enakku Nallavar", lines: ["2 | 3 | 1m | 2m", "3 | 2 | 3 | 1 (2)"] },
+        { label: "Stanza", lines: ["1m | 2 (2)", "2m | 3 | 1"] }
+      ]},
+      { id: "s040", title: "எந்தன் துதி காலமும் (Enthan Thuthi Kaalamum / Innum Thuthipen)", key: "G", tonality: "minor", bpm: 120, sections: [
+        { label: "Chorus", lines: ["1 | 3m(maj) | 2m | 2", "2m | 3 | 1"] },
+        { label: "Innum Thuthipen (Stanza)", lines: ["1 | 3 | 2 | 1", "2m | 3 | 2m (2) | 1"] }
+      ]},
+      { id: "s041", title: "முழு இருதயத்தோடு (Mulu Iruthayathodu)", key: "C", tonality: "major", bpm: 118, sections: [
+        { label: "Mulu Iruthayathodu (Chorus)", lines: ["1 2 | 3 | 2m | 3m(maj)", "1m | 3m | 2m | 3 1"] },
+        { label: "உம் நாமத்தை", lines: ["1m | 3m (2) | 2m | 1"] },
+        { label: "Stanza", lines: ["1 2 | 2m 3 (2) | 2m | 3 1 (2)"] }
+      ]},
+      { id: "s042", title: "ஏல் பெத்தேல் (El Bethel)", key: "F", tonality: "major", bpm: 115, sections: [
+        { label: "Chorus", lines: ["1 | 2m | 3 | 1", "1m | 2m | 3 1"] },
+        { label: "El Bethel", lines: ["2m | 3 1 | 1m | 2m"] },
+        { label: "Stanza", lines: ["3 | 3m | 1m | 2m", "1m 2 | 3 1 (2)"] }
+      ]},
+      { id: "s043", title: "தேவனே (Devane / E Maj Sheet)", key: "E", tonality: "major", bpm: 118, sections: [
+        { label: "Chorus", lines: ["1 | 2m | 1m | 3", "3 1 (2) | 2 | 1 2m | 3 1 (2)"] },
+        { label: "Stanza", lines: ["1 2 | 2m | 3 1 (2)", "2m 3 | 2m | 3 1 (2)"] }
+      ]},
+      { id: "s044", title: "பாடுவேன் என்றேன் என் இயேசுவின் (Paaduven Endren)", key: "A", tonality: "major", bpm: 120, sections: [
+        { label: "Paaduven (Chorus)", lines: ["1 | 2 | 1m (2)", "2 | 1 | 2 | 3"] },
+        { label: "Naan Ummai", lines: ["2 | 3m | 2m | 3", "2 | 3m | 2m | 3"] },
+        { label: "Yesuve (Refrain)", lines: ["2 | 2m | 3 (2)", "1m | 2 | 2m | 3 1"] }
+      ]},
+      { id: "s045", title: "நிர்மூலமாகாதிருப்பது (Nirmoolamagathirupathu)", key: "Eb", tonality: "minor", bpm: 116, sections: [
+        { label: "நிர்மூலமாகாதிருப்பது (Chorus)", lines: ["1 | 2 | 3m | 2m 1 (2)"] },
+        { label: "கிருபை (Stanza)", lines: ["2 | 2m 1 | 1 3m | 2m 1 (2)", "2m | 3m | 2m 1 (2)"] }
+      ]},
+      { id: "s046", title: "உம்மை ஆராதிக்க கூடி வந்தோம் (Ummai Aarathikka Koodi Vanthom)", key: "F", tonality: "major", bpm: 122, sections: [
+        { label: "Ummai Aarathikka (Chorus)", lines: ["1 | 2 | 3 | 3m", "1m | 2m | 3 | 2"] },
+        { label: "Aarathanai", lines: ["2 (2) | 3 | 1 | 3m | 1"] },
+        { label: "Stanza", lines: ["3m (2) | 2 | 3", "2 | 3 | 3m(maj)", "1m | 2 | 3 | 3m"] }
+      ]},
+      { id: "s047", title: "நான் நிற்கும் பூமி (Naan Nirkum Boomi)", key: "E", tonality: "major", bpm: 114, sections: [
+        { label: "Naan Nirkum (Chorus)", lines: ["1 | 2m | 3 | 3m 1m"] },
+        { label: "Ennai Thetri", lines: ["2m | 3 | 2 | 1"] },
+        { label: "Nambuven (Chorus)", lines: ["1m (2) | 2 | 2m | 3 | 1"] }
+      ]},
+      { id: "s048", title: "இதோ மனிதர்கள் மத்தியில் (Itho Manithargal)", key: "F", tonality: "major", bpm: 116, sections: [
+        { label: "Itho (Chorus)", lines: ["1 / 1m | 3m (2) | 2"] },
+        { label: "Umakku", lines: ["2m | 3 | 1 | 1m", "2m | 3 | 1"] },
+        { label: "Engal (Stanza)", lines: ["1 | 2m (2) | 2 | 3 | 1"] }
+      ]},
+      { id: "s049", title: "எந்தன் உள்ளம் புது கவியாலே (Enthan Ullam Puthu Kaviyale)", key: "D", tonality: "major", bpm: 124, sections: [
+        { label: "Enthan Ullam (Chorus)", lines: ["1 | 3m(maj) | 1m", "1m | 3 1 | 2m | 3 | 1"] },
+        { label: "Hallelujah", lines: ["2 | 3 (2) | 2 | 3 | 1m"] },
+        { label: "Stanza", lines: ["3m | 2 | 3 | 1"] }
+      ]},
+      { id: "s050", title: "உயிரோடு எழுந்தவரே / உங்க அன்பு (Unga Anbu Nallavar Neer)", key: "D", tonality: "major", bpm: 118, sections: [
+        { label: "Chorus", lines: ["1 | 3 | 2 | 3", "2 | 2m | 2 | 3 (2)"] },
+        { label: "நல்லவர் நீர் (Stanza)", lines: ["2m | 3 (2) | 2 | 3", "2m | 3 | 2 | 3 (2)"] }
+      ]},
+      { id: "s051", title: "இயேசுவே (Dmaj / Dm Stanza Sheet)", key: "D", tonality: "major", bpm: 115, sections: [
+        { label: "Chorus", lines: ["1 | 3m | 2 | 3", "2 | 3 | 2 (2)"] },
+        { label: "Stanza (Dm)", lines: ["1m | 2m | 3m | 1m", "1 | 2 | 3 | 1"] }
+      ]},
+      { id: "s052", title: "எங்கள் பிதாவே (Engal Pithave)", key: "D", tonality: "minor", bpm: 116, sections: [
+        { label: "எங்கள் பிதாவே (Chorus)", lines: ["1 | 2m(maj) (2)", "3m | 1m | 2m | 1"] },
+        { label: "சர்வ வல்ல (Stanza)", lines: ["3m(maj) | 1m | 2m | 1 (2)", "2 | 2m | 1"] }
+      ]},
+      { id: "s053", title: "நிகரே இல்லா தேவன் (Nigare Illa Devan)", key: "D", tonality: "minor", bpm: 122, sections: [
+        { label: "நிகரே இல்லா (Chorus)", lines: ["1 (2) | 3m | 3 | 2 | 1m (2)"] },
+        { label: "வான சேனைகள் (Stanza)", lines: ["2m | 3m | 1m | 2 | 1"] }
+      ]},
+      { id: "s054", title: "கிருபை மேலானதே (Kirubai Melanathe)", key: "E", tonality: "major", bpm: 114, sections: [
+        { label: "Kirubai (Chorus)", lines: ["1 | 3 | 1m | 2m", "3 | 2m | 2 | 3 | 1"] }
+      ]},
+      { id: "s055", title: "உமக்குள்ளே இருக்கின்ற (Umakkulle Irukindra)", key: "B", tonality: "major", bpm: 118, sections: [
+        { label: "Chorus", lines: ["1 | 1m | 2 3 1 | 2m", "1 3m | 2 3 1"] },
+        { label: "Stanza", lines: ["2 | 3m | 3 (2)", "2 1 | 3 | 2", "3 1 | 2m | 3 1"] }
+      ]},
+      { id: "s056", title: "எனது தலைவன் இயேசு ராஜன் (Enathu Thalaivan Yesu Rajan)", key: "B", tonality: "major", bpm: 120, sections: [
+        { label: "Enathu Thalaivan (Chorus)", lines: ["1 | 2 | 1m | 3", "3 | 1"] },
+        { label: "Stanza", lines: ["2 | 2 3 1 | 3 | 1", "3m (2) | 2m (2) | 1m (2)", "2 | 1 | 3 | 1 (2)"] }
+      ]},
+      { id: "s057", title: "ஒன்றுமில்லாமை இருந்தென்னை (Ondrumillamai IrunthEnnai)", key: "D", tonality: "major", bpm: 115, sections: [
+        { label: "Chorus", lines: ["1 | 2 | 3 1 | 2m", "2m | 1m | 3 (2)"] },
+        { label: "நீர் எங்களை (Stanza)", lines: ["2 | 3m | 3 | 1m", "2m | 3 (2) | 1"] }
+      ]},
+      { id: "s058", title: "துதி மகிமை (Thuthi Magimai - Robert Roy)", key: "F#", tonality: "minor", bpm: 125, sections: [
+        { label: "Chorus", lines: ["1 | 3m | 1 2 3 2 | 1", "2 3 | 1"] },
+        { label: "Stanza", lines: ["3 (2) | 3m | 1 | 2", "1 | 3m | 3 (2) | 1", "2 | 2 3 | 1"] }
+      ]},
+      { id: "s059", title: "துதிக்கு பாத்திரர் (Thuthikku Paathirar)", key: "A", tonality: "major", bpm: 116, sections: [
+        { label: "Chorus", lines: ["1 | 3m | 2 | 2m 3 (2)"] },
+        { label: "Stanza", lines: ["3 | 1m | 2 | 3 3m (2)"] }
+      ]},
+      { id: "s060", title: "மகிமையும் துதியும் (Magimaiyum Thuthiyum Umakke)", key: "E", tonality: "minor", bpm: 122, sections: [
+        { label: "Magimai (Chorus)", lines: ["1 3 1 | 3m | 2m | 1", "1 2m 3m | 3 2 | 1 3m (2)"] },
+        { label: "Aarathanai (Stanza)", lines: ["2m | 3 3m | 3 2 | 1 3m 1", "1m 2 | 2m | 3 (2) | 1 3m"] }
+      ]},
+      { id: "s061", title: "நான் ஒரு (Naan Oru - Dm Sheet)", key: "D", tonality: "minor", bpm: 115, sections: [
+        { label: "Chorus", lines: ["1 | 3m (2) | 2 | 3 (2)"] },
+        { label: "Stanza", lines: ["1 | 3 (2) | 2m | 1"] }
+      ]},
+      { id: "s062", title: "கிருபை என்றுமுள்ளது (Kirubai Endrumullathu)", key: "D", tonality: "minor", bpm: 124, sections: [
+        { label: "Kirubai (Chorus)", lines: ["1 | 2 | 1m | 3", "3 2 | 2m | 3m | 1"] },
+        { label: "Stanza", lines: ["1 (2) | 3m | 3 (2)", "1 3 | 2 | 1m"] }
+      ]},
+      { id: "s063", title: "உங்க பிரசன்னத்தில் (Unga Prasannathil)", key: "D", tonality: "major", bpm: 120, sections: [
+        { label: "Unga Prasannathil (Chorus)", lines: ["1 | 3 (2) | 1 | 2", "1 2 (2) | 3 | 2m | 1", "3 | 1 (2)"] },
+        { label: "Jehovah (Stanza)", lines: ["1 3 | 1m | 2 | 1 (2)", "2 (2) | 3 | 1 1m | 2 | 3 | 1"] }
+      ]},
+      { id: "s064", title: "நல்லவரே இயேசு தேவா (Nallavare Yesu Deva)", key: "G", tonality: "minor", bpm: 118, sections: [
+        { label: "நல்லவரே (Chorus)", lines: ["1 (2) | 2m(maj) (2)", "1 | 3m(maj) | 2 | 3m", "2m(maj) | 1"] },
+        { label: "Stanza", lines: ["3 2 1 | 3m(maj) | 2 | 1", "3m | 2m(maj) | 3m | 2m | 1"] }
+      ]},
+      { id: "s065", title: "உங்க நாமம் உயரணும் (Unga Naamam Uyaranum)", key: "D", tonality: "minor", bpm: 125, sections: [
+        { label: "Unga Naamam (Chorus)", lines: ["1 | 3 (2) | 1", "1m | 3 | 2 | 3 (2)"] },
+        { label: "Stanza", lines: ["1m | 3 | 1 (2)", "2 | 3 | 1"] }
+      ]},
+      { id: "s066", title: "பலிபீடத்திலே (Balibeedathile)", key: "D", tonality: "minor", bpm: 114, sections: [
+        { label: "Balibeedathile (Chorus)", lines: ["1 | 2 | 3m | 2m (2)"] },
+        { label: "Chorus / Stanza", lines: ["3 | 1 | 2m | 3m(maj) (2)"] }
+      ]},
+      { id: "s067", title: "ஆழமான அகலமான (Aazhamana Agalamana)", key: "A", tonality: "major", bpm: 120, sections: [
+        { label: "Chorus", lines: ["1 | 2 | 1 2m | 1 2", "1 2 | 3 | 1 (2)"] },
+        { label: "Stanza", lines: ["1m | 2 | 3 | 1", "1m | 2 | 1"] }
+      ]},
+      { id: "s068", title: "உம்மை ஆராதிக்க கூடி வந்தோம் நல்லவரே (Koodi Vanthom)", key: "A", tonality: "major", bpm: 120, sections: [
+        { label: "Chorus", lines: ["1 | 2 | 3 | 3m", "1m | 2m | 3 | 2"] },
+        { label: "ஆராதனை", lines: ["2 | 3 | 3m | 1 (2)"] },
+        { label: "Stanza", lines: ["3m (2) | 2 | 3", "2 | 3 | 3m(maj)", "1m | 2 | 3m | 3"] }
+      ]},
+      { id: "s069", title: "இயேசுவே ஆண்டவர் (Yesuve Aandavar - Sheet 2)", key: "F", tonality: "minor", bpm: 120, sections: [
+        { label: "Yesuve (Chorus)", lines: ["1 | 2m | 1 / 3m(maj) (2)"] },
+        { label: "Stanza", lines: ["3 | 2 | 2m | 3m(maj) (2)", "3m | 2m | 3m | 2m 1 (2)"] }
+      ]},
+      { id: "s070", title: "துயரமோ இணையumo (Thuyaramo Inaiyumo)", key: "D", tonality: "major", bpm: 116, sections: [
+        { label: "Chorus", lines: ["1 2 | 3 1 (2)"] },
+        { label: "Umakke", lines: ["1 2 | 3 | 3m | 1m", "1m(maj) | 2m | 3 | 2"] },
+        { label: "Stanza", lines: ["1 | 2 | 1 / 1m | 2 | 3 | 1"] }
+      ]},
+      { id: "s071", title: "ஜெயம் (Jeyam - C Maj Sheet)", key: "C", tonality: "major", bpm: 124, sections: [
+        { label: "Chorus", lines: ["1 | 2 1 (2)", "1m | 2m | 2 | 3 1 (2)"] },
+        { label: "Stanza", lines: ["3 | 2m (2) | 1m | 3m", "2 (2) | 1m | 3 (2) | 1"] }
+      ]},
+      { id: "s072", title: "மகிமையின் மேகமாக (Magimaiyin Megamaga)", key: "G", tonality: "major", bpm: 118, sections: [
+        { label: "Magimaiyin (Chorus)", lines: ["1 | 2 | 3", "1m | 2 | 1"] },
+        { label: "Vallamaiya", lines: ["1 | 2m (2)", "2 | 3 | 3m"] },
+        { label: "Stanza", lines: ["1m | 3 | 2 | 2m (2)"] }
+      ]},
+      { id: "s073", title: "யெகோவா தேவன் (Yehovah Devan)", key: "E", tonality: "minor", bpm: 122, sections: [
+        { label: "Chorus", lines: ["1 | 3m | 2 | 3 (2)"] },
+        { label: "Neer", lines: ["1m | 3m | 2 | 3 1 (2)"] },
+        { label: "Stanza", lines: ["1 3 1m | 2 / 3 | 3m 1m (2)", "2m | 3 | 2 | 1"] }
+      ]},
+      { id: "s074", title: "உம்மைப்போல யாருண்டு (Ummaipola Yaarundu)", key: "A", tonality: "major", bpm: 114, sections: [
+        { label: "உம்மைப்போல (Chorus)", lines: ["1 | 3 | 1m | 3", "3m(maj) | 2m | 1 (2)", "2 | 3m (2)"] },
+        { label: "Stanza", lines: ["1m | 2m | 3m(maj) (2)", "1m 3 | 2 | 3m", "1m | 2m | 3 (2) | 1"] }
+      ]},
+      { id: "s075", title: "கல்வாரி அன்பே (Kalvari Anbe Ennobil)", key: "C", tonality: "major", bpm: 110, sections: [
+        { label: "Kalvari (Chorus)", lines: ["1 | 2 3 (2)", "1m | 3 | 2m | 2", "3 | 3 1"] },
+        { label: "Stanza", lines: ["1 | 1 2 | 2m | 3 3m (2)", "1 1m | 2m | 2 | 1m | 2m 3 1 (2)"] }
+      ]},
+      { id: "s076", title: "அலைகளை (Alaigalai / En Yesu)", key: "B", tonality: "major", bpm: 118, sections: [
+        { label: "Chorus", lines: ["1 | 1m | 2m | 3 1"] },
+        { label: "En Yesu (Stanza)", lines: ["1m | 2m | 3 1 | 2 3 1", "1 3 1m | 2m | 1"] }
+      ]},
+      { id: "s077", title: "புயலின் மத்தியில் (Puyalin Mathiyil)", key: "D", tonality: "major", bpm: 120, sections: [
+        { label: "Puyalin (Chorus)", lines: ["1 | 2 3 | 1m | 2 3"] },
+        { label: "Kadantha (Stanza)", lines: ["2 | 3 (2) | 2m | 3", "3 | 2 | 3 1 (2)"] }
+      ]},
+      { id: "s078", title: "அழைப்பின் பந்தய பொருள் (Alaipin Panthaya Porul)", key: "C", tonality: "major", bpm: 122, sections: [
+        { label: "Chorus", lines: ["1 | 3m | 3 2 (2)"] },
+        { label: "Bridge", lines: ["1 3 1m | 2m | 3 1 (2)"] },
+        { label: "Stanza", lines: ["1m | 2m | 3 1 (2)"] }
+      ]},
+      { id: "s079", title: "சேனைகளின் கர்த்தாவே (Senaigalin Karthave)", key: "G", tonality: "major", bpm: 120, sections: [
+        { label: "Chorus", lines: ["1 3 | 3 2 | 2m (2)", "1m | 2 (2) | 3 3m | 2m | 1"] }
+      ]},
+      { id: "s080", title: "தாயின் கருவில் என்னை (Thayin Karuvil Ennai - F Key)", key: "F", tonality: "major", bpm: 118, sections: [
+        { label: "Thayin (Chorus)", lines: ["1 | 3m | 1m | 3", "2m | D# | 2 | 1"] },
+        { label: "Maraven", lines: ["1 | 2 | 2m | D# | 3 1"] },
+        { label: "Yen Kartha (Stanza)", lines: ["2 | 1 | 2m | 3 | 1"] }
+      ]},
+      { id: "s081", title: "தூயாதி தூயவரே (Thooyathi Thooyavare)", key: "G", tonality: "major", bpm: 114, sections: [
+        { label: "Thooyathi (Chorus)", lines: ["1 | 2m | 2 1 | 3 1 (2)"] },
+        { label: "Chorus 2", lines: ["1 2 | 3 3m (2)", "1m | 2m(maj) | 3 1"] },
+        { label: "Stanza", lines: ["1 | 2 (2) | 2m | 3 1 (2)"] }
+      ]},
+      { id: "s082", title: "உம்மை நம்பி வந்தேன் (Ummai Nambi Vanthen)", key: "D", tonality: "minor", bpm: 120, sections: [
+        { label: "Ummai Nambi (Chorus)", lines: ["1 | 2m 1 | 1 | 2m | 3", "1 | 2m (2) | 3m | 1m"] },
+        { label: "Chorus", lines: ["1 3m | 2m | 2m 1 (2)"] },
+        { label: "Stanza", lines: ["1 | 2m (2) | 3m | 1 2m", "1 3m | 2m | 1m"] }
+      ]},
+      { id: "s083", title: "துயரத்தில் கூப்பிட்டேன் (Thuyarathil Koopitten)", key: "F", tonality: "major", bpm: 116, sections: [
+        { label: "Thuyarathil (Chorus)", lines: ["1 | 2 (2) | 3 | 1", "2 | 3 | 2m | 1 3"] },
+        { label: "Chorus / Stanza", lines: ["2m | 3m | 3 | 1m", "3 | 2m | 2 | 1"] }
+      ]},
+      { id: "s084", title: "பரம எருசலேமே (Parama Yerusaleme)", key: "F", tonality: "major", bpm: 124, sections: [
+        { label: "Parama Yerusaleme (Chorus)", lines: ["1 | 3m | 1m | 3 (2)", "2m | D# | 3 | 1"] },
+        { label: "Stanza", lines: ["1 | 2m | 3 | 2 (2)", "D# | 1 (2)"] }
+      ]},
+      { id: "s085", title: "உன்னதமானவரின் (Unnathamanavarin / Senaigalin)", key: "A", tonality: "major", bpm: 120, sections: [
+        { label: "Chorus", lines: ["1 | 3m | 1m | 3", "1m | 3m | 2m | 3 1"] },
+        { label: "சேனைகளின் (Stanza)", lines: ["1 3 | 1m | 3m(maj)", "1m | 3 (2) | 1 3 1m | 3 2 1"] }
+      ]},
+      { id: "s086", title: "நம் வாழ்வில் (Nam Vaalvil - Robert Roy)", key: "A", tonality: "major", bpm: 118, sections: [
+        { label: "Chorus", lines: ["1 | 2 1 (2) | 3 | 2", "1m | 3 1m | 2 (2)"] },
+        { label: "Stanza", lines: ["2 1 | 2 (2) | 3", "2 | 3 | 2 3 1 (2)"] }
+      ]},
+      { id: "s087", title: "மறப்பேனோ எபிநேசரே (Marapeno Ebinesare)", key: "D", tonality: "minor", bpm: 116, sections: [
+        { label: "Marapeno (Chorus)", lines: ["1 | 3m | 2m | 1 (2)", "1m | 2m | 1 (2)"] },
+        { label: "Stanza (Aarathanai)", lines: ["1 | 3m | 2m | 1m", "2m 1 | 3m 1 | 1"] }
+      ]},
+      { id: "s088", title: "மகிழ்ந்து களிகூரு (Magilnthu Kalikooru)", key: "C#", tonality: "major", bpm: 126, sections: [
+        { label: "Magilnthu (Chorus)", lines: ["1 | 2 | 2m | 3 | 2 | 2m"] },
+        { label: "Stanza", lines: ["1 | 2 | 2m | 3 | 2 | 1"] }
+      ]},
+      { id: "s089", title: "அமர்ந்து என்னை காண்பவரே (Amarnthu Ennai Kaanbavare)", key: "D", tonality: "minor", bpm: 114, sections: [
+        { label: "Chorus", lines: ["1 | 3m | 1 | 2m (2)", "3m | 2m(maj) | 2m | 3m | 2m"] },
+        { label: "Stanza (Naan Oru Raja)", lines: ["1 2 | 3m | 3 | 1m (2)", "2 | 3m | 2m | 2 | 1 (2)"] }
+      ]},
+      { id: "s090", title: "ஒப்புக்கொடுத்தேன் ஐயா (Oppu Koduthen Ayya)", key: "D", tonality: "major", bpm: 112, sections: [
+        { label: "Oppu Koduthen (Chorus)", lines: ["1 | 1m | 2m | 3"] },
+        { label: "Stanza", lines: ["3m | 3 | 2 | 2m", "2 1 (2) | 3 | 2 | 1m | 3 1"] }
+      ]},
+      { id: "s091", title: "ஒவ்வொரு நாட்களிலும் (Ovvoru Naatkalilum)", key: "E", tonality: "major", bpm: 116, sections: [
+        { label: "Ovvoru (Chorus)", lines: ["1 | 2m | 3 | 2 (2)", "2m | 1m"] },
+        { label: "Stanza", lines: ["1 7 | 2 | 3m (2)", "2m | 2 | 3 | 1"] }
+      ]},
+      { id: "s092", title: "போற்றி துதிப்போமே (Potri Thuthipome)", key: "D", tonality: "major", bpm: 124, sections: [
+        { label: "Potri (Chorus)", lines: ["1 | 3 3m (2) | 1 3 3m", "3m (2) | 3 1 | 2 | 3m"] },
+        { label: "Stanza", lines: ["3 | 1m | 1 2 | 2m | 3m (2) | 3 1"] }
+      ]},
+      { id: "s093", title: "கேளாததை (Kelathathai / Ennai Kai Vidatha)", key: "D", tonality: "major", bpm: 118, sections: [
+        { label: "Kelathathai (Chorus)", lines: ["1 | 1m | 2 | 3 | 1 2 3 (2)"] },
+        { label: "Chorus / Stanza", lines: ["2 (2) | 3 1 2 3 (2)", "2 3 1 2 | 1"] }
+      ]},
+      { id: "s094", title: "தலைகள் உயரட்டும் (Thalaigal Uyarattum)", key: "D", tonality: "major", bpm: 122, sections: [
+        { label: "தலைகள் (Chorus)", lines: ["1 | 1m | 3 | 2m | 3 1 (2)"] },
+        { label: "யாரிந்த (Bridge)", lines: ["2 | 2m | 3 1 (2) | 3"] },
+        { label: "Stanza", lines: ["2 1 (2) | 1m 2 (2)", "2m | 3 | 1"] }
+      ]},
+      { id: "s095", title: "நடத்திடுவார் (Nadathiduvaar)", key: "D", tonality: "minor", bpm: 116, sections: [
+        { label: "Chorus", lines: ["1 | 3m (2) | 1 | 3", "2m | 2 | 1"] },
+        { label: "Stanza", lines: ["2m | 3m | 2m 3m | 2", "1 | 3m | 2m | 1"] }
+      ]},
+      { id: "s096", title: "குதூகலம் கொண்டாட்டமே (Kuthugalam Kondatame)", key: "F", tonality: "major", bpm: 128, sections: [
+        { label: "Kuthugalam (Chorus)", lines: ["1 | 3 (2) | 2m | 3 | 1", "1 | 3 | 2m | 3 | 1"] },
+        { label: "Stanza", lines: ["1 | 3m (2) | 1m | 2", "2m | D# (2) | 3 | 1"] }
+      ]},
+      { id: "s097", title: "விவரிக்க முடியாத (Vivarika Mudiyatha)", key: "D", tonality: "major", bpm: 115, sections: [
+        { label: "Vivarika (Chorus)", lines: ["1 | 3 (2) | 3m | 2"] },
+        { label: "Neer", lines: ["1 | 3 | 3m | 1m", "2m | 3 3m | 1 | 3", "3m | 2m | 3 2"] },
+        { label: "Stanza", lines: ["1 | 3 (2) | 2m | 3", "2m | 3 (2) | 3m | 1m"] }
+      ]},
+      { id: "s098", title: "சிலுவையின் நிழலיל (Siluvaiyin Nilalil)", key: "C", tonality: "major", bpm: 110, sections: [
+        { label: "Siluvaiyin (Chorus)", lines: ["1 | 1m | 3m", "2m | 3 | 1"] },
+        { label: "Stanza", lines: ["1 | 2 | 2m | 3 | 1", "2 | 2m | 3 | 1"] }
+      ]},
+      { id: "s099", title: "முதல் இரத்த சாட்சி நான் (Muthal Iratha Satchi Naan)", key: "F", tonality: "major", bpm: 118, sections: [
+        { label: "Muthal (Chorus)", lines: ["1 | 2 | D# (2)", "2 | 3"] },
+        { label: "Chorus 2", lines: ["1 | 1 | 2", "2 | 2m | 3 | 1"] },
+        { label: "Stanza", lines: ["1 | 2 1 | 2 | 3 | 2m | 1"] }
+      ]},
+      { id: "s100", title: "ஆஹா இயேசுவே (Ha Ha Ha Yesuve)", key: "E", tonality: "minor", bpm: 126, sections: [
+        { label: "Ha Ha (Chorus)", lines: ["3 | 2m 3 | 3m | 2m 1m", "2m | -"] },
+        { label: "Yesuve (Stanza)", lines: ["3 | 2m | 2m(maj) | 3m 2m", "3 | 2m | 2m | 1"] }
+      ]},
+      { id: "s101", title: "எல்லா துதியும் உமக்கே (Ella Thuthiyum Umakke)", key: "E", tonality: "major", bpm: 118, sections: [
+        { label: "Ella Thuthiyum (Chorus)", lines: ["1 | 1m (2) | 2 | 1"] },
+        { label: "Chorus / Stanza", lines: ["2 | 1m | 2 | 1m | 3"] }
+      ]}
+    ];
+
+    // MUSICAL DIATONIC ENGINE
+    const CHROMATIC_NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+    const ENHARMONIC_MAP = { 'Db': 'C#', 'D#': 'Eb', 'Gb': 'F#', 'G#': 'Ab', 'A#': 'Bb' };
+
+    function normalizeNote(n) { return ENHARMONIC_MAP[n] || n; }
+
+    function getDiatonicRoot(rootNote, tonality, degreeNumber) {
+      const norm = normalizeNote(rootNote);
+      let idx = CHROMATIC_NOTES.indexOf(norm);
+      if (idx === -1) idx = 0;
+
+      let offset = 0;
+      if (tonality === 'minor') {
+        const minorOffsets = { 1: 0, 2: 2, 3: 3, 4: 5, 5: 7, 6: 8, 7: 10 };
+        offset = minorOffsets[degreeNumber] || 0;
+      } else {
+        const majorOffsets = { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11 };
+        offset = majorOffsets[degreeNumber] || 0;
+      }
+      return CHROMATIC_NOTES[(idx + offset) % 12];
+    }
+
+    function convertNashvilleToChord(token, rootNote, tonality) {
+      const trimmed = token.trim();
+      if (!trimmed || trimmed === '-' || trimmed === '|') return trimmed;
+      if (trimmed.startsWith('(') && trimmed.endsWith(')')) return trimmed;
+
+      const match = trimmed.match(/^(\d)(.*)$/);
+      if (!match) return trimmed;
+
+      const degree = parseInt(match[1], 10);
+      const modifier = match[2];
+      const chordRoot = getDiatonicRoot(rootNote, tonality, degree);
+      return chordRoot + modifier;
+    }
+
+    // STATE MANAGEMENT
+    let songs = [...initialSongs];
+    let currentSongId = songs[0].id;
+    let notationMode = 'number';
+    let currentKey = songs[0].key;
+    let currentTonality = songs[0].tonality;
+    let fontSizeMultiplier = 1;
+    let autoScrollInterval = null;
+    let activeTextarea = null;
+    let selectedKeyFilter = 'ALL';
+
+    const songsListContainer = document.getElementById('songsListContainer');
+    const stageView = document.getElementById('stageView');
+    const editorView = document.getElementById('editorView');
+    const keySelect = document.getElementById('keySelect');
+    const tonalitySelect = document.getElementById('tonalitySelect');
+    const viewNotationNumber = document.getElementById('viewNotationNumber');
+    const viewNotationChords = document.getElementById('viewNotationChords');
+    const metroBpmBadge = document.getElementById('metroBpmBadge');
+    const totalSongCountBadge = document.getElementById('totalSongCountBadge');
+
+    // MERGE CLOUD SONGS WITH INITIAL 101 SONGS
+    if (db) {
+      const colRef = collection(db, "band_chords");
+      onSnapshot(colRef, (snapshot) => {
+        const cloudMap = new Map();
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          cloudMap.set(data.id, data);
+        });
+
+        // Merge preloaded songs with any cloud edits or additions
+        const mergedMap = new Map();
+        initialSongs.forEach(s => mergedMap.set(s.id, s));
+        cloudMap.forEach((val, key) => mergedMap.set(key, val));
+
+        songs = Array.from(mergedMap.values());
+        totalSongCountBadge.innerText = `${songs.length} Songs`;
+        localStorage.setItem('faith_chords_cache', JSON.stringify(songs));
+        renderSidebar(document.getElementById('searchSongs').value);
+        renderStage();
+      });
+    }
+
+    // 1-CLICK BULK UPLOAD ALL 101 SONGS TO FIREBASE CLOUD
+    const syncAllCloudBtn = document.getElementById('syncAllCloudBtn');
+    const syncAllBtnText = document.getElementById('syncAllBtnText');
+    syncAllCloudBtn.onclick = async () => {
+      if (!db) return alert("Firebase is not connected.");
+      syncAllBtnText.innerText = "Uploading...";
+      try {
+        const batch = writeBatch(db);
+        songs.forEach(song => {
+          const ref = doc(db, "band_chords", song.id);
+          batch.set(ref, song);
+        });
+        await batch.commit();
+        syncAllBtnText.innerText = "All Synced! ✓";
+        setTimeout(() => { syncAllBtnText.innerText = `Sync All ${songs.length} to Cloud`; }, 3000);
+      } catch (e) {
+        console.error("Batch sync error:", e);
+        syncAllBtnText.innerText = "Sync Failed";
+      }
+    };
+
+    // SIDEBAR RENDER
+    function renderSidebar(filter = '') {
+      songsListContainer.innerHTML = '';
+      const filtered = songs.filter(s => {
+        const matchesText = s.title.toLowerCase().includes(filter.toLowerCase()) || s.key.toLowerCase().includes(filter.toLowerCase());
+        const matchesKey = (selectedKeyFilter === 'ALL') || (s.key === selectedKeyFilter);
+        return matchesText && matchesKey;
+      });
+
+      totalSongCountBadge.innerText = `${songs.length} Songs`;
+
+      filtered.forEach((song, idx) => {
+        const isActive = song.id === currentSongId;
+        const item = document.createElement('div');
+        item.className = `group p-2.5 rounded-xl cursor-pointer transition flex items-center justify-between border ${
+          isActive 
+            ? 'bg-stage-700/90 border-sky-500/60 shadow-md' 
+            : 'hover:bg-slate-800/80 border-transparent text-slate-300'
+        }`;
+        item.innerHTML = `
+          <div class="flex items-center gap-2.5 flex-1 truncate mr-2">
+            <span class="text-[10px] font-mono text-slate-500 w-5 text-right">${idx + 1}.</span>
+            <div class="truncate">
+              <h4 class="font-bold text-xs sm:text-sm text-white truncate">${song.title}</h4>
+              <div class="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+                <span class="text-sky-400 font-semibold">${song.key} ${song.tonality === 'minor' ? 'min' : 'maj'}</span>
+                <span>•</span>
+                <span>${song.bpm || 120} BPM</span>
+              </div>
+            </div>
+          </div>
+          <button title="Edit Song" class="sidebar-edit-btn p-1.5 rounded-lg bg-slate-800/80 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-slate-700 transition shrink-0">
+            <i class="ph-bold ph-pencil-simple text-xs"></i>
+          </button>
+        `;
+        
+        item.onclick = (e) => {
+          if (e.target.closest('.sidebar-edit-btn')) {
+            e.stopPropagation();
+            selectSong(song.id);
+            openEditor(song);
+            return;
+          }
+          selectSong(song.id);
+        };
+        songsListContainer.appendChild(item);
+      });
+    }
+
+    // Key Filter Pills
+    document.querySelectorAll('.key-pill').forEach(pill => {
+      pill.onclick = () => {
+        selectedKeyFilter = pill.getAttribute('data-key');
+        document.querySelectorAll('.key-pill').forEach(p => {
+          p.className = "key-pill px-2 py-0.5 rounded bg-slate-900 text-slate-400 hover:text-white shrink-0";
+        });
+        pill.className = "key-pill px-2 py-0.5 rounded bg-sky-500 text-slate-950 font-bold shrink-0";
+        renderSidebar(document.getElementById('searchSongs').value);
+      };
+    });
+
+    function selectSong(id) {
+      currentSongId = id;
+      const song = songs.find(s => s.id === id);
+      if (song) {
+        currentKey = song.key;
+        currentTonality = song.tonality;
+        keySelect.value = song.key;
+        tonalitySelect.value = song.tonality;
+        bpmInput.value = song.bpm || 120;
+        bpmSlider.value = song.bpm || 120;
+        metroBpmBadge.innerText = song.bpm || 120;
+      }
+      editorView.classList.add('hidden');
+      stageView.classList.remove('hidden');
+      renderSidebar(document.getElementById('searchSongs').value);
+      renderStage();
+    }
+
+    function renderStage() {
+      const song = songs.find(s => s.id === currentSongId);
+      if (!song) return;
+
+      let html = `
+        <div class="mb-6 pb-4 border-b border-slate-800">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">${song.title}</h1>
+              <div class="flex items-center gap-3 mt-2 text-xs font-mono text-slate-400">
+                <span class="px-2.5 py-0.5 bg-slate-800 rounded-md text-sky-400 border border-slate-700">
+                  Key: <strong class="text-white">${currentKey} ${currentTonality}</strong>
+                </span>
+                <span class="px-2.5 py-0.5 bg-slate-800 rounded-md text-slate-300 border border-slate-700">
+                  Tempo: <strong class="text-white">${song.bpm || 120} BPM</strong>
+                </span>
+              </div>
+            </div>
+            
+            <button id="stageHeaderEditBtn" class="no-print px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-lg transition">
+              <i class="ph-bold ph-pencil-simple"></i>
+              <span>Edit This Song</span>
+            </button>
+          </div>
+        </div>
+        <div class="space-y-6" style="font-size: ${fontSizeMultiplier * 100}%">
+      `;
+
+      song.sections.forEach((sec, idx) => {
+        html += `
+          <div class="stage-section group bg-stage-800/40 hover:bg-stage-800/70 p-5 rounded-2xl border border-slate-800/90 transition shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs sm:text-sm font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                ${sec.label}
+              </h3>
+              <button data-sec-idx="${idx}" class="section-quick-edit no-print opacity-75 group-hover:opacity-100 text-xs font-mono text-slate-400 hover:text-amber-300 flex items-center gap-1 px-2 py-1 rounded bg-slate-900/80 border border-slate-800">
+                <i class="ph-bold ph-pencil-simple"></i> Edit Section
+              </button>
+            </div>
+            <div class="space-y-3 font-mono">
+        `;
+
+        sec.lines.forEach(line => {
+          const tokens = line.split(/\s+/);
+          html += `<div class="flex flex-wrap items-center gap-2 sm:gap-3 py-1 text-base sm:text-xl font-bold">`;
+          
+          tokens.forEach(tok => {
+            if (tok === '|') {
+              html += `<span class="text-slate-600 px-1 font-light">|</span>`;
+            } else if (tok === '-' || tok === '—') {
+              html += `<span class="text-slate-500 px-2 font-mono">•</span>`;
+            } else if (tok.startsWith('(') && tok.endsWith(')')) {
+              html += `<span class="text-amber-300 text-xs sm:text-sm px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/60">${tok}</span>`;
+            } else {
+              let displayVal = tok;
+              if (notationMode === 'chord') {
+                displayVal = convertNashvilleToChord(tok, currentKey, currentTonality);
+              }
+              html += `
+                <span class="chord-badge inline-flex items-center justify-center px-3 py-1 rounded-xl bg-slate-800/90 text-sky-300 border border-slate-700 shadow-sm">
+                  ${displayVal}
+                </span>
+              `;
+            }
+          });
+          html += `</div>`;
+        });
+        html += `</div></div>`;
+      });
+
+      html += `</div>`;
+      stageView.innerHTML = html;
+
+      document.getElementById('stageHeaderEditBtn').onclick = () => openEditor(song);
+      document.querySelectorAll('.section-quick-edit').forEach(btn => {
+        btn.onclick = () => openEditor(song, parseInt(btn.getAttribute('data-sec-idx'), 10));
+      });
+    }
+
+    // CONTROLS
+    viewNotationNumber.onclick = () => {
+      notationMode = 'number';
+      viewNotationNumber.className = "px-3 py-1 rounded text-xs font-semibold bg-sky-500 text-slate-950 transition";
+      viewNotationChords.className = "px-3 py-1 rounded text-xs font-semibold text-slate-300 hover:text-white transition";
+      renderStage();
+    };
+
+    viewNotationChords.onclick = () => {
+      notationMode = 'chord';
+      viewNotationChords.className = "px-3 py-1 rounded text-xs font-semibold bg-sky-500 text-slate-950 transition";
+      viewNotationNumber.className = "px-3 py-1 rounded text-xs font-semibold text-slate-300 hover:text-white transition";
+      renderStage();
+    };
+
+    keySelect.onchange = (e) => { currentKey = e.target.value; renderStage(); };
+    tonalitySelect.onchange = (e) => { currentTonality = e.target.value; renderStage(); };
+
+    document.getElementById('fontUpBtn').onclick = () => { if (fontSizeMultiplier < 2) fontSizeMultiplier += 0.15; renderStage(); };
+    document.getElementById('fontDownBtn').onclick = () => { if (fontSizeMultiplier > 0.7) fontSizeMultiplier -= 0.15; renderStage(); };
+
+    // AUTO SCROLL
+    const stageScroller = document.getElementById('stageScroller');
+    const autoScrollToggleBtn = document.getElementById('autoScrollToggleBtn');
+    const scrollStateText = document.getElementById('scrollStateText');
+    const scrollSpeed = document.getElementById('scrollSpeed');
+
+    autoScrollToggleBtn.onclick = () => {
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
+        scrollStateText.innerText = "Scroll";
+      } else {
+        scrollStateText.innerText = "Stop";
+        autoScrollInterval = setInterval(() => {
+          stageScroller.scrollTop += parseInt(scrollSpeed.value, 10);
+        }, 50);
+      }
+    };
+
+    // METRONOME
+    let isMetroPlaying = false;
+    let metroEvent = null;
+    const toggleMetroBtn = document.getElementById('toggleMetroBtn');
+    const metroDrawer = document.getElementById('metroDrawer');
+    const playMetroBtn = document.getElementById('playMetroBtn');
+    const playMetroIcon = document.getElementById('playMetroIcon');
+    const playMetroLabel = document.getElementById('playMetroLabel');
+    const bpmInput = document.getElementById('bpmInput');
+    const bpmSlider = document.getElementById('bpmSlider');
+    const metroLight = document.getElementById('metroLight');
+
+    toggleMetroBtn.onclick = () => metroDrawer.classList.toggle('hidden');
+
+    function updateBpm(val) {
+      bpmInput.value = val;
+      bpmSlider.value = val;
+      metroBpmBadge.innerText = val;
+      Tone.Transport.bpm.value = val;
+    }
+
+    bpmInput.oninput = (e) => updateBpm(e.target.value);
+    bpmSlider.oninput = (e) => updateBpm(e.target.value);
+
+    let clickSynth = null;
+    playMetroBtn.onclick = async () => {
+      await Tone.start();
+      if (!clickSynth) clickSynth = new Tone.MembraneSynth().toDestination();
+
+      if (isMetroPlaying) {
+        Tone.Transport.stop();
+        Tone.Transport.clear(metroEvent);
+        isMetroPlaying = false;
+        playMetroIcon.className = "ph-fill ph-play";
+        playMetroLabel.innerText = "Start Beat";
+      } else {
+        Tone.Transport.bpm.value = parseInt(bpmInput.value, 10);
+        let beat = 0;
+        metroEvent = Tone.Transport.scheduleRepeat((time) => {
+          const isDownbeat = (beat % 4 === 0);
+          clickSynth.triggerAttackRelease(isDownbeat ? "C4" : "G3", "32n", time);
+          Tone.Draw.schedule(() => {
+            metroLight.style.backgroundColor = isDownbeat ? "#38bdf8" : "#facc15";
+            setTimeout(() => { metroLight.style.backgroundColor = "#1e293b"; }, 80);
+          }, time);
+          beat++;
+        }, "4n");
+        Tone.Transport.start();
+        isMetroPlaying = true;
+        playMetroIcon.className = "ph-fill ph-stop";
+        playMetroLabel.innerText = "Stop Beat";
+      }
+    };
+
+    // EDITOR
+    const newSongBtn = document.getElementById('newSongBtn');
+    const topEditSongBtn = document.getElementById('topEditSongBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const cancelFormBottomBtn = document.getElementById('cancelFormBottomBtn');
+    const songForm = document.getElementById('songForm');
+    const sectionRowsContainer = document.getElementById('sectionRowsContainer');
+    const formTitle = document.getElementById('formTitle');
+    const formKey = document.getElementById('formKey');
+    const formTonality = document.getElementById('formTonality');
+    const formBpm = document.getElementById('formBpm');
+    const deleteSongBtn = document.getElementById('deleteSongBtn');
+    const editorTitleText = document.getElementById('editorTitleText');
+
+    let editingSongId = null;
+
+    function openEditor(song = null, focusSectionIndex = null) {
+      stageView.classList.add('hidden');
+      editorView.classList.remove('hidden');
+      sectionRowsContainer.innerHTML = '';
+      activeTextarea = null;
+
+      if (song) {
+        editingSongId = song.id;
+        editorTitleText.innerText = `Editing: ${song.title}`;
+        formTitle.value = song.title;
+        formKey.value = song.key;
+        formTonality.value = song.tonality;
+        formBpm.value = song.bpm || 120;
+        deleteSongBtn.classList.remove('hidden');
+        song.sections.forEach(sec => addSectionRow(sec.label, sec.lines.join('\n')));
+
+        if (focusSectionIndex !== null) {
+          const allTextareas = sectionRowsContainer.querySelectorAll('.section-lines');
+          if (allTextareas[focusSectionIndex]) {
+            setTimeout(() => {
+              allTextareas[focusSectionIndex].focus();
+              allTextareas[focusSectionIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }
+        }
+      } else {
+        editingSongId = 'song_' + Date.now();
+        editorTitleText.innerText = 'Create New Song';
+        formTitle.value = '';
+        formKey.value = 'C';
+        formTonality.value = 'major';
+        formBpm.value = 120;
+        deleteSongBtn.classList.add('hidden');
+        addSectionRow("Chorus", "1 | 2m | 3 | 1");
+      }
+    }
+
+    function addSectionRow(labelVal = '', linesVal = '') {
+      const row = document.createElement('div');
+      row.className = 'section-row bg-slate-900/70 p-4 rounded-xl border border-slate-700/80 space-y-2.5';
+      row.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <input type="text" placeholder="Section Name (e.g. Chorus / Stanza)" value="${labelVal}" required 
+                 class="section-label flex-1 px-3 py-1.5 text-xs sm:text-sm bg-slate-800 border border-slate-700 rounded-lg text-amber-300 font-bold focus:outline-none">
+          <button type="button" class="remove-row-btn p-1.5 bg-red-950/60 hover:bg-red-900 text-red-400 rounded border border-red-800/50 text-xs">
+            <i class="ph-bold ph-trash"></i>
+          </button>
+        </div>
+        <textarea rows="3" placeholder="Enter chords line by line" required
+                  class="section-lines w-full p-3 text-sm font-mono bg-stage-900 border border-slate-700 rounded-lg text-sky-200 focus:outline-none focus:border-sky-500">${linesVal}</textarea>
+      `;
+      const textarea = row.querySelector('.section-lines');
+      textarea.addEventListener('focus', () => { activeTextarea = textarea; });
+      row.querySelector('.remove-row-btn').onclick = () => {
+        if (sectionRowsContainer.children.length > 1) row.remove();
+      };
+      sectionRowsContainer.appendChild(row);
+      activeTextarea = textarea;
+    }
+
+    document.getElementById('addSectionRowBtn').onclick = () => addSectionRow();
+    newSongBtn.onclick = () => openEditor(null);
+    topEditSongBtn.onclick = () => {
+      const curr = songs.find(s => s.id === currentSongId);
+      if (curr) openEditor(curr);
+    };
+
+    function closeEditor() {
+      editorView.classList.add('hidden');
+      stageView.classList.remove('hidden');
+    }
+    cancelEditBtn.onclick = closeEditor;
+    cancelFormBottomBtn.onclick = closeEditor;
+
+    document.querySelectorAll('.quick-insert').forEach(btn => {
+      btn.onclick = () => {
+        const textareas = document.querySelectorAll('.section-lines');
+        const targetArea = activeTextarea || textareas[textareas.length - 1];
+        if (targetArea) {
+          const start = targetArea.selectionStart;
+          const end = targetArea.selectionEnd;
+          const text = targetArea.value;
+          const insertToken = (start > 0 && text[start - 1] !== ' ' && text[start - 1] !== '\n' ? ' ' : '') + btn.innerText + ' ';
+          targetArea.value = text.substring(0, start) + insertToken + text.substring(end);
+          targetArea.focus();
+          targetArea.selectionStart = targetArea.selectionEnd = start + insertToken.length;
+        }
+      };
+    });
+
+    songForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const rows = document.querySelectorAll('.section-row');
+      const compiledSections = [];
+      rows.forEach(r => {
+        const label = r.querySelector('.section-label').value.trim();
+        const lines = r.querySelector('.section-lines').value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        compiledSections.push({ label, lines });
+      });
+
+      const updatedSong = {
+        id: editingSongId,
+        title: formTitle.value.trim(),
+        key: formKey.value,
+        tonality: formTonality.value,
+        bpm: parseInt(formBpm.value, 10) || 120,
+        sections: compiledSections
+      };
+
+      const existingIdx = songs.findIndex(s => s.id === updatedSong.id);
+      if (existingIdx !== -1) songs[existingIdx] = updatedSong;
+      else songs.unshift(updatedSong);
+
+      if (db) {
+        try { await setDoc(doc(db, "band_chords", updatedSong.id), updatedSong); } 
+        catch (err) { console.error(err); }
+      }
+
+      currentSongId = updatedSong.id;
+      currentKey = updatedSong.key;
+      currentTonality = updatedSong.tonality;
+      keySelect.value = updatedSong.key;
+      tonalitySelect.value = updatedSong.tonality;
+      updateBpm(updatedSong.bpm);
+
+      closeEditor();
+      renderSidebar(document.getElementById('searchSongs').value);
+      renderStage();
+    };
+
+    deleteSongBtn.onclick = async () => {
+      if (confirm("Are you sure you want to delete this song?")) {
+        songs = songs.filter(s => s.id !== editingSongId);
+        if (db) {
+          try { await deleteDoc(doc(db, "band_chords", editingSongId)); } 
+          catch (err) { console.error(err); }
+        }
+        if (songs.length > 0) currentSongId = songs[0].id;
+        closeEditor();
+        renderSidebar(document.getElementById('searchSongs').value);
+        renderStage();
+      }
+    };
+
+    document.getElementById('searchSongs').oninput = (e) => renderSidebar(e.target.value);
+
+    renderSidebar();
+    selectSong(currentSongId);
+  </script>
+</body>
+</html>
