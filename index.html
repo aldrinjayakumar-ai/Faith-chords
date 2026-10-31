@@ -77,43 +77,46 @@
             user-select: none;
             pointer-events: none;
         }
-        /* Shared Monospace Font Stack so Editor and Stage match 1:1 */
+        /* Shared Monospace Font Stack with Auto-Wrapping for Mobile/Laptop View */
         .exact-align-font {
             font-family: 'Consolas', 'Courier New', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace, 'Nirmala UI', 'Latha', sans-serif;
             letter-spacing: 0px !important;
             font-variant-ligatures: none;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
-        /* Professional Mode: Single Unified Box on Stage */
+        /* Professional Mode: Single Unified Box on Stage with Clean Wrapping */
         .pro-section-unified-box {
             background-color: rgba(15, 23, 42, 0.65);
             border: 1px solid #334155;
             border-radius: 0.875rem;
             padding: 1.25rem 1.5rem;
-            overflow-x: auto;
+            width: 100%;
+            box-sizing: border-box;
         }
         .pro-line-group {
             position: relative;
-            padding: 0.4rem 0;
+            padding: 0.5rem 0;
+            width: 100%;
         }
         .pro-line-group + .pro-line-group {
-            margin-top: 0.85rem;
+            margin-top: 1rem;
+            border-top: 1px dashed rgba(51, 65, 85, 0.4);
         }
         .pro-chord-line {
             color: #3b82f6;
             font-weight: 700;
-            white-space: pre;
+            white-space: pre-wrap;
             line-height: 1.4;
-            min-height: 1.4em;
             position: relative;
             z-index: 2;
         }
         .pro-lyric-line {
             color: #f1f5f9;
             font-weight: 500;
-            white-space: pre;
+            white-space: pre-wrap;
             line-height: 1.5;
-            min-height: 1.5em;
-            margin-top: 0.2rem;
+            margin-top: 0.15rem;
             position: relative;
             z-index: 1;
         }
@@ -130,12 +133,12 @@
             left: 50%;
             transform: translateX(-50%);
             top: 0.1em;
-            height: 2.75em;
-            width: 3px;
+            height: 2.6em;
+            width: 2.5px;
             background-color: #3b82f6;
             border-radius: 2px;
             pointer-events: none;
-            box-shadow: 0 0 6px rgba(59, 130, 246, 0.35);
+            box-shadow: 0 0 5px rgba(59, 130, 246, 0.35);
         }
 
         /* =====================================================
@@ -149,7 +152,7 @@
         }
         body.stage-fullscreen-active #main-stage-viewer {
             max-width: 100% !important;
-            padding: 4.5rem 2.5rem 2.5rem 2.5rem !important;
+            padding: 4.5rem 1.5rem 1.5rem 1.5rem !important;
         }
         body.stage-fullscreen-active #fullscreen-hud {
             display: flex !important;
@@ -159,14 +162,36 @@
             border-color: rgba(51, 65, 85, 0.6);
         }
     </style>
+
+    <!-- Firebase SDK & Live Real-Time Connection -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3IpIgET9whg1ADFZ0AwxMkODu6kGtkJo",
+            authDomain: "faith-chords-for-band.firebaseapp.com",
+            projectId: "faith-chords-for-band",
+            storageBucket: "faith-chords-for-band.firebasestorage.app",
+            messagingSenderId: "311110943704",
+            appId: "1:311110943704:web:3b3ffa7590a5ad72c468ad",
+            measurementId: "G-DX7R9RGWEE"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.FirestoreSDK = { collection, onSnapshot, setDoc, doc, deleteDoc };
+    </script>
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen flex flex-col">
 
-    <!-- FULL SCREEN FLOATING HUD & SETLIST BAR (Visible only in Full Screen Mode) -->
+    <!-- FULL SCREEN FLOATING HUD & SETLIST BAR -->
     <div id="fullscreen-hud" class="hidden fixed top-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 flex-wrap justify-between items-center gap-3 shadow-2xl">
         <div class="flex items-center gap-3 flex-wrap flex-1 min-w-0">
             <div class="flex items-center gap-2 shrink-0">
-                <span id="fs-song-title" class="text-sm font-bold text-white truncate max-w-[200px]">Song Title</span>
+                <span id="fs-song-title" class="text-sm font-bold text-white truncate max-w-[160px]">Song Title</span>
                 <span id="fs-song-key" class="px-2 py-0.5 bg-accent/20 text-accent border border-accent/40 rounded-md text-xs font-extrabold">Key: C</span>
             </div>
             <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 max-w-full" id="fs-setlist-pills"></div>
@@ -189,7 +214,7 @@
             </button>
 
             <button onclick="toggleFullScreenMode()" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-lg">
-                <i class="fa-solid fa-compress"></i> Exit Full Screen
+                <i class="fa-solid fa-compress"></i> Exit
             </button>
         </div>
     </div>
@@ -216,30 +241,30 @@
             <!-- Mode Toggle -->
             <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
                 <button id="btn-casual-mode" onclick="switchViewMode('casual')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
-                    <i class="fa-solid fa-table-cells-large mr-1"></i> Casual (4-Col Grid)
+                    <i class="fa-solid fa-table-cells-large mr-1"></i> Casual
                 </button>
                 <button id="btn-pro-mode" onclick="switchViewMode('professional')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white transition">
                     <i class="fa-solid fa-align-left mr-1"></i> Professional
                 </button>
             </div>
 
-            <!-- Top Header Transpose Controls -->
+            <!-- Transpose Controls -->
             <div class="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-700 text-xs">
                 <span class="text-slate-400 font-semibold mr-0.5"><i class="fa-solid fa-sliders mr-1 text-accent"></i>Transpose:</span>
-                <button onclick="transposeSong(-1)" class="w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold flex items-center justify-center transition" title="Transpose Down (-1 Semitone)">-</button>
-                <span id="header-transpose-display" onclick="resetTranspose()" class="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded-md font-bold text-accent cursor-pointer min-w-[54px] text-center" title="Click to reset to Original Key">Original</span>
-                <button onclick="transposeSong(1)" class="w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold flex items-center justify-center transition" title="Transpose Up (+1 Semitone)">+</button>
+                <button onclick="transposeSong(-1)" class="w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold flex items-center justify-center transition" title="Transpose Down">-</button>
+                <span id="header-transpose-display" onclick="resetTranspose()" class="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded-md font-bold text-accent cursor-pointer min-w-[54px] text-center" title="Click to reset">Original</span>
+                <button onclick="transposeSong(1)" class="w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold flex items-center justify-center transition" title="Transpose Up">+</button>
             </div>
 
             <!-- Font Size Adjusters -->
             <div class="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-xl border border-slate-700 text-xs">
                 <span class="text-slate-400 font-semibold">Size:</span>
-                <button onclick="adjustFontSize(-1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition" title="Decrease Size">A-</button>
-                <button onclick="adjustFontSize(1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition" title="Increase Size">A+</button>
+                <button onclick="adjustFontSize(-1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition">A-</button>
+                <button onclick="adjustFontSize(1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition">A+</button>
             </div>
 
             <!-- Full Screen Button -->
-            <button onclick="toggleFullScreenMode()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg" title="Full Screen Stage View (Lyrics & Chords Only)">
+            <button onclick="toggleFullScreenMode()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg">
                 <i class="fa-solid fa-expand"></i> Full Screen
             </button>
 
@@ -269,7 +294,7 @@
         </aside>
 
         <!-- STAGE VIEWER -->
-        <main id="main-stage-viewer" class="flex-1 p-6 md:p-8 overflow-y-auto max-w-5xl">
+        <main id="main-stage-viewer" class="flex-1 p-4 md:p-8 overflow-y-auto max-w-5xl">
             <div id="no-song-selected" class="h-full flex flex-col items-center justify-center text-slate-500 py-20">
                 <i class="fa-solid fa-music text-5xl mb-4 opacity-40"></i>
                 <p class="text-base font-medium">Select a song from the sidebar to view chord charts.</p>
@@ -317,12 +342,12 @@
             <div class="flex justify-between items-center pb-2 border-b border-slate-700">
                 <div>
                     <h3 class="text-base font-bold text-emerald-400"><i class="fa-solid fa-paste mr-2"></i>Edit Text Only — <span id="text-only-sec-name" class="text-white">Section</span></h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5">Paste or type your stanza below (one line per row). After saving, use "Edit Section" to place chords above each line.</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Paste or type your stanza below (one line per row).</p>
                 </div>
                 <button type="button" onclick="closeTextOnlyModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <textarea id="text-only-textarea" rows="7" class="exact-align-font w-full bg-slate-900 border border-slate-700 rounded-xl p-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-400 leading-relaxed" placeholder="Paste your stanza lyrics here...&#10;Line 1 of stanza&#10;Line 2 of stanza&#10;Line 3 of stanza"></textarea>
+            <textarea id="text-only-textarea" rows="7" class="exact-align-font w-full bg-slate-900 border border-slate-700 rounded-xl p-3.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-400 leading-relaxed" placeholder="Paste your stanza lyrics here..."></textarea>
 
             <div class="flex justify-between items-center pt-2">
                 <span class="text-[11px] text-slate-400"><i class="fa-solid fa-circle-info mr-1 text-emerald-400"></i>Existing chords on matching line numbers are preserved.</span>
@@ -361,25 +386,19 @@
                     </div>
                 </div>
 
-                <!-- Modal Entry Mode Selector -->
                 <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/70 p-3 rounded-xl border border-slate-700">
                     <div>
                         <span class="text-xs font-bold text-slate-200">Editor Entry Mode:</span>
-                        <p id="modal-mode-desc" class="text-[11px] text-slate-400">Professional: Align chords and `|` bar lines directly above your lyrics. On save, `|` merges down into the text.</p>
+                        <p id="modal-mode-desc" class="text-[11px] text-slate-400">Professional: Align chords and `|` bar lines directly above your lyrics.</p>
                     </div>
                     <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
-                        <button type="button" id="modal-btn-casual" onclick="setModalEditorMode('casual')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
-                            Casual Grid
-                        </button>
-                        <button type="button" id="modal-btn-pro" onclick="setModalEditorMode('professional')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white transition">
-                            Professional (Chord + Line)
-                        </button>
+                        <button type="button" id="modal-btn-casual" onclick="setModalEditorMode('casual')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">Casual Grid</button>
+                        <button type="button" id="modal-btn-pro" onclick="setModalEditorMode('professional')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white transition">Professional (Chord + Line)</button>
                     </div>
                 </div>
 
-                <!-- Quick Keypad Bar -->
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
-                    <span class="text-[11px] font-semibold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-bolt mr-1"></i> Quick Keypad (Tap to insert into focused box):</span>
+                    <span class="text-[11px] font-semibold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-bolt mr-1"></i> Quick Keypad:</span>
                     <div class="flex flex-wrap gap-1.5">
                         <button type="button" onclick="insertToken('C')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-blue-400">C</button>
                         <button type="button" onclick="insertToken('Dm')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-blue-400">Dm</button>
@@ -387,21 +406,11 @@
                         <button type="button" onclick="insertToken('F')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-blue-400">F</button>
                         <button type="button" onclick="insertToken('G')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-blue-400">G</button>
                         <button type="button" onclick="insertToken('Am')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-blue-400">Am</button>
-                        <button type="button" onclick="insertToken('1')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold">1</button>
-                        <button type="button" onclick="insertToken('1M')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold">1M</button>
-                        <button type="button" onclick="insertToken('2M')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold">2M</button>
-                        <button type="button" onclick="insertToken('3M')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold">3M</button>
-                        <button type="button" onclick="insertToken('4')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold">4</button>
-                        <button type="button" onclick="insertToken('5')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold">5</button>
-                        <button type="button" onclick="insertToken('6m')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold">6m</button>
-                        <button type="button" onclick="insertToken('    ')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-emerald-400" title="Insert 4 spaces for chord alignment">Space ×4</button>
-                        <button type="button" onclick="insertToken('| ')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-accent" title="Inserts vertical bar that merges with sentence"> | (Bar Line) </button>
-                        <button type="button" onclick="insertToken(' || ')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-amber-400" title="Double pipe leaves blank cell in Casual mode"> || (Blank)</button>
-                        <button type="button" onclick="insertToken(' | x2')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold">×2</button>
+                        <button type="button" onclick="insertToken('    ')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-emerald-400" title="Space ×4">Space ×4</button>
+                        <button type="button" onclick="insertToken('| ')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-accent"> | (Bar Line) </button>
                     </div>
                 </div>
 
-                <!-- Sections Builder Container -->
                 <div class="space-y-3">
                     <div class="flex justify-between items-center">
                         <label id="builder-sections-label" class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Song Sections</label>
@@ -414,7 +423,7 @@
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-700">
                     <button type="button" onclick="closeSongModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold transition">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-accent hover:bg-blue-600 rounded-xl text-xs font-semibold transition">Save Changes & Sync</button>
+                    <button type="submit" class="px-4 py-2 bg-accent hover:bg-blue-600 rounded-xl text-xs font-semibold transition">Save & Sync to Cloud</button>
                 </div>
             </form>
         </div>
@@ -426,7 +435,7 @@
             <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
                 <div>
                     <h3 class="text-lg font-bold"><i class="fa-solid fa-calendar-days text-purple-500 mr-1.5"></i> Sunday Worship Setlist</h3>
-                    <p class="text-[11px] text-slate-400">Click any song below to jump directly to its chord chart.</p>
+                    <p class="text-[11px] text-slate-400">Click any song below to jump directly to its chart.</p>
                 </div>
                 <button onclick="closeSetlistModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -443,7 +452,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT LOGIC -->
+    <!-- SCRIPT LOGIC WITH REAL-TIME FIRESTORE SYNC -->
     <script>
         let currentViewMode = 'professional';
         let modalEditorMode = 'professional';
@@ -464,85 +473,68 @@
             'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11, 'Cb': 11
         };
 
-        const defaultSongs = [
-            {
-                id: '1',
-                title: 'En Karthar Seitha Nanmai',
-                key: 'C major',
-                tempo: '115 BPM',
-                mode: 'professional',
-                sections: [
-                    {
-                        name: 'PALLAVI / CHORUS',
-                        rows: [
-                            { cells: ['C', '', '', ''], repeat: 0 },
-                            { cells: ['F', '', 'C', ''], repeat: 2 },
-                            { cells: ['Dm', 'Em', '', ''], repeat: 0 },
-                            { cells: ['Dm', 'G', 'C', ''], repeat: 2 }
-                        ],
-                        proLines: [
-                            { chords: ' C     -----------------------------------------', text: 'என் கர்த்தர் செய்த நன்மை யாவும் எண்ணி' },
-                            { chords: 'F                                  |   C', text: 'முழு மனதாய் ஸ்தோத்தரிப்பேன் நான் -2' },
-                            { chords: 'Dm                    |  Em', text: 'ஆராய்ந்து முடியாத அதிசயங்கள் செய்தீரே' },
-                            { chords: 'Dm              |   G                 |  C', text: 'முழு மனதாய் ஸ்தோத்தரிப்பேன் நான் - 2' }
-                        ]
-                    }
-                ]
-            },
-            {
-                id: '2',
-                title: 'Yakobin Devan',
-                key: 'D major',
-                tempo: '120 BPM',
-                mode: 'casual',
-                sections: [
-                    {
-                        name: 'CHORUS',
-                        rows: [
-                            { cells: ['1', '', '', '3M'], repeat: 2 },
-                            { cells: ['3', '', '', ''], repeat: 0 },
-                            { cells: ['2M', '', '', '2'], repeat: 0 },
-                            { cells: ['2M', '3', '', ''], repeat: 0 }
-                        ],
-                        proLines: [
-                            { chords: 'D                  | F#', text: 'Yakobin Devan En Thunaiyallo (x2)' },
-                            { chords: 'F#m', text: 'Enakkubayam Illaiye' },
-                            { chords: 'E                  | Em', text: 'Avar Ennai Kaakkum Dheivame' },
-                            { chords: 'E          | F#m', text: 'Ennai Vittu Vilagaar' }
-                        ]
-                    },
-                    {
-                        name: 'Stanza',
-                        rows: [
-                            { cells: ['1', '', '', '3'], repeat: 2 },
-                            { cells: ['1M', '', '', '3M'], repeat: 0 },
-                            { cells: ['2M', '2', '3', ''], repeat: 2 }
-                        ],
-                        proLines: [
-                            { chords: 'D                  | F#m', text: 'uh la la la la la la la (x2)' },
-                            { chords: 'D                  | F#', text: 'Sing Hallelujah to the Lord' },
-                            { chords: 'E          | Em    | F#m', text: 'Praise His Holy Name forevermore (x2)' }
-                        ]
-                    }
-                ]
+        let songsDatabase = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const checkDbInterval = setInterval(() => {
+                if (window.db) {
+                    clearInterval(checkDbInterval);
+                    const { collection, onSnapshot } = window.FirestoreSDK;
+                    
+                    onSnapshot(collection(window.db, "band_chords"), (snapshot) => {
+                        songsDatabase = [];
+                        snapshot.forEach((docSnap) => {
+                            songsDatabase.push(docSnap.data());
+                        });
+
+                        if (songsDatabase.length === 0) {
+                            const defaultSong = {
+                                id: '1',
+                                title: 'En Karthar Seitha Nanmai',
+                                key: 'C major',
+                                tempo: '115 BPM',
+                                mode: 'professional',
+                                sections: [
+                                    {
+                                        name: 'PALLAVI / CHORUS',
+                                        rows: [],
+                                        proLines: [
+                                            { chords: ' C     -----------------------------------------', text: 'என் கர்த்தர் செய்த நன்மை யாவும் எண்ணி' },
+                                            { chords: 'F                                  |   C', text: 'முழு மனதாய் ஸ்தோத்தரிப்பேன் நான் -2' },
+                                            { chords: 'Dm                    |  Em', text: 'ஆராய்ந்து முடியாத அதிசயங்கள் செய்தீரே' },
+                                            { chords: 'Dm              |   G                 |  C', text: 'முழு மனதாய் ஸ்தோத்தரிப்பேன் நான் - 2' }
+                                        ]
+                                    }
+                                ]
+                            };
+                            saveSongToFirestore(defaultSong);
+                        } else {
+                            renderSongsList();
+                            if (currentSong) {
+                                const updated = songsDatabase.find(s => s.id === currentSong.id);
+                                if (updated) displaySong(updated);
+                            } else if (songsDatabase.length > 0) {
+                                selectSong(songsDatabase[0].id);
+                            }
+                        }
+                    });
+                }
+            }, 100);
+        });
+
+        function saveSongToFirestore(song) {
+            if (window.db) {
+                const { doc, setDoc } = window.FirestoreSDK;
+                setDoc(doc(window.db, "band_chords", song.id), song).catch(err => console.error("Firestore error:", err));
             }
-        ];
-
-        let songsDatabase = JSON.parse(localStorage.getItem('faith_songs_db') || 'null') || defaultSongs;
-
-        function saveSongsToStorage() {
-            localStorage.setItem('faith_songs_db', JSON.stringify(songsDatabase));
         }
 
-        window.onload = function() {
-            if (sundaySetlist.length === 0) {
-                sundaySetlist = [songsDatabase[0]];
-                localStorage.setItem('faith_setlist', JSON.stringify(sundaySetlist));
+        function deleteSongFromFirestore(songId) {
+            if (window.db) {
+                const { doc, deleteDoc } = window.FirestoreSDK;
+                deleteDoc(doc(window.db, "band_chords", songId)).catch(err => console.error("Firestore delete error:", err));
             }
-            renderSongsList();
-            updateSetlistBadge();
-            selectSong(songsDatabase[0].id);
-        };
+        }
 
         function toggleFullScreenMode() {
             if (!isStageFullScreen) enterStageFullScreen();
@@ -589,9 +581,7 @@
                 const isActive = currentSong && currentSong.id === s.id;
                 const btn = document.createElement('button');
                 btn.className = `px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 transition flex items-center gap-1.5 border ${
-                    isActive
-                        ? 'bg-purple-600 text-white border-purple-400 shadow-md'
-                        : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white'
+                    isActive ? 'bg-purple-600 text-white border-purple-400 shadow-md' : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white'
                 }`;
                 btn.onclick = () => selectSong(s.id);
                 btn.innerHTML = `<span class="opacity-60 text-[10px]">#${idx + 1}</span> <span>${escapeHtml(s.title)}</span>`;
@@ -626,40 +616,30 @@
 
             while ((match = chordRegex.exec(line)) !== null) {
                 let gap = line.slice(lastIndex, match.index);
-
                 if (lengthCarry > 0 && gap.length > 0) {
                     const spacesMatch = gap.match(/^( +)/);
                     if (spacesMatch && spacesMatch[1].length > 1) {
                         const removeCount = Math.min(lengthCarry, spacesMatch[1].length - 1);
                         gap = gap.slice(removeCount);
                         lengthCarry -= removeCount;
-                    } else {
-                        lengthCarry = 0;
-                    }
+                    } else { lengthCarry = 0; }
                 } else if (lengthCarry < 0) {
                     gap = ' '.repeat(-lengthCarry) + gap;
                     lengthCarry = 0;
                 }
-
                 const origChord = match[0];
                 const transposedChord = transposeSingleChordToken(origChord, semitones);
                 lengthCarry += (transposedChord.length - origChord.length);
-
                 result += gap + transposedChord;
                 lastIndex = chordRegex.lastIndex;
             }
-
             let tail = line.slice(lastIndex);
             if (lengthCarry > 0 && tail.length > 0) {
                 const spacesMatch = tail.match(/^( +)/);
                 if (spacesMatch && spacesMatch[1].length > 1) {
-                    const removeCount = Math.min(lengthCarry, spacesMatch[1].length - 1);
-                    tail = tail.slice(removeCount);
+                    tail = tail.slice(Math.min(lengthCarry, spacesMatch[1].length - 1));
                 }
-            } else if (lengthCarry < 0) {
-                tail = ' '.repeat(-lengthCarry) + tail;
-            }
-
+            } else if (lengthCarry < 0) { tail = ' '.repeat(-lengthCarry) + tail; }
             return result + tail;
         }
 
@@ -678,7 +658,6 @@
             currentViewMode = mode;
             const casualBtn = document.getElementById('btn-casual-mode');
             const proBtn = document.getElementById('btn-pro-mode');
-
             if (mode === 'casual') {
                 casualBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white transition";
                 proBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
@@ -686,7 +665,6 @@
                 proBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white transition";
                 casualBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
             }
-
             if (currentSong) displaySong(currentSong);
         }
 
@@ -699,7 +677,6 @@
         function renderSongsList(filterText = '') {
             const listContainer = document.getElementById('songs-list');
             listContainer.innerHTML = '';
-
             const filtered = songsDatabase.filter(s => s.title.toLowerCase().includes(filterText.toLowerCase()));
             
             filtered.forEach(song => {
@@ -726,9 +703,7 @@
             if (!found) return;
             currentSong = found;
             transposeOffset = 0;
-            if (currentSong && currentSong.mode) {
-                switchViewMode(currentSong.mode);
-            }
+            if (currentSong && currentSong.mode) switchViewMode(currentSong.mode);
             document.getElementById('no-song-selected').classList.add('hidden');
             document.getElementById('song-display-area').classList.remove('hidden');
             displaySong(currentSong);
@@ -742,40 +717,29 @@
             if (sec.rows && sec.rows.length > 0) {
                 return sec.rows.map(r => {
                     const chordStr = r.cells.map(c => (c || '').padEnd(8, ' ')).join('').trimEnd();
-                    const repeatStr = r.repeat > 1 ? ` (x${r.repeat})` : '';
-                    return { chords: chordStr, text: repeatStr ? `[Line]${repeatStr}` : '' };
+                    return { chords: chordStr, text: '' };
                 });
             }
-            return [{ chords: 'C        F        G', text: 'Enter lyrics or text here...' }];
+            return [{ chords: 'C        F        G', text: 'Enter lyrics here...' }];
         }
 
         function updateTransposeLabels() {
             const labelText = transposeOffset === 0 ? 'Original' : (transposeOffset > 0 ? `+${transposeOffset}` : `${transposeOffset}`);
-            const stageBadge = document.getElementById('transpose-display');
-            const headerBadge = document.getElementById('header-transpose-display');
-            const fsBadge = document.getElementById('fs-transpose-display');
-            if (stageBadge) stageBadge.innerText = labelText;
-            if (headerBadge) headerBadge.innerText = labelText;
-            if (fsBadge) fsBadge.innerText = labelText;
+            ['transpose-display', 'header-transpose-display', 'fs-transpose-display'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = labelText;
+            });
         }
 
         function displaySong(song) {
             document.getElementById('display-title').innerText = song.title;
-            
             const modeBadge = document.getElementById('display-mode-badge');
-            if (currentViewMode === 'professional') {
-                modeBadge.innerText = 'Professional Mode (Chords + Text)';
-                modeBadge.className = 'px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
-            } else {
-                modeBadge.innerText = 'Casual Mode (4-Col Grid)';
-                modeBadge.className = 'px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-accent/20 text-accent border border-accent/30';
-            }
+            modeBadge.innerText = currentViewMode === 'professional' ? 'Professional Mode' : 'Casual Mode';
 
             const keyBadge = document.getElementById('display-key');
             const effectiveKey = getTransposedKeyString(song.key, transposeOffset);
             keyBadge.innerText = `Key: ${effectiveKey}`;
             keyBadge.style.fontSize = `${badgeFontSize}rem`;
-            keyBadge.style.padding = `${badgeFontSize * 0.4}rem ${badgeFontSize * 0.9}rem`;
 
             const fsTitle = document.getElementById('fs-song-title');
             const fsKey = document.getElementById('fs-song-key');
@@ -790,13 +754,13 @@
 
             song.sections.forEach((sec, sIdx) => {
                 const card = document.createElement('div');
-                card.className = 'section-card-container bg-cardbg border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4';
+                card.className = 'section-card-container bg-cardbg border border-slate-700 rounded-2xl p-4 md:p-6 shadow-xl space-y-4 overflow-hidden';
 
                 let innerHtml = `<div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-700 pb-3">
                     <h4 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-circle text-[8px] mr-2"></i> ${escapeHtml(sec.name)}</h4>
                     <div class="section-action-buttons flex flex-wrap gap-2">
                         <button onclick="editSectionName(${sIdx})" class="text-xs text-slate-400 hover:text-white px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg transition"><i class="fa-solid fa-pen mr-1"></i> Rename</button>
-                        <button onclick="openStageTextOnlyModal(${sIdx})" class="text-xs text-emerald-400 hover:text-emerald-300 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg transition" title="Copy & paste stanza text only"><i class="fa-solid fa-paste mr-1"></i> Edit Text Only</button>
+                        <button onclick="openStageTextOnlyModal(${sIdx})" class="text-xs text-emerald-400 hover:text-emerald-300 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg transition"><i class="fa-solid fa-paste mr-1"></i> Edit Text Only</button>
                         <button onclick="openEditCurrentSongModal()" class="text-xs text-amber-400 hover:text-amber-300 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg transition"><i class="fa-solid fa-sliders mr-1"></i> Edit Section</button>
                     </div>
                 </div>`;
@@ -818,47 +782,18 @@
                     innerHtml += proHtml;
                 } else {
                     let rowsHtml = '<div class="space-y-3">';
-                    const rows = sec.rows || [];
-                    let hasRepeat = rows.some(r => r.repeat && r.repeat > 1);
-
-                    if (hasRepeat) {
-                        rowsHtml += `<div class="vertical-repeat-container">`;
-                        rowsHtml += `<div class="space-y-3 flex-1">`;
-                        rows.forEach(r => {
-                            rowsHtml += `<div class="strict-4col-grid">`;
-                            for(let i=0; i<4; i++) {
-                                let cellVal = r.cells[i] !== undefined ? r.cells[i] : '';
-                                if (cellVal.trim() === '') {
-                                    rowsHtml += `<div class="chord-pill empty-cell"></div>`;
-                                } else {
-                                    const transposedCell = transposeSingleChordToken(cellVal, transposeOffset);
-                                    rowsHtml += `<div class="chord-pill text-accent" style="font-size: ${globalFontSize}rem;">${escapeHtml(transposedCell)}</div>`;
-                                }
-                            }
-                            rowsHtml += `</div>`;
-                        });
+                    (sec.rows || []).forEach(r => {
+                        rowsHtml += `<div class="strict-4col-grid">`;
+                        for(let i=0; i<4; i++) {
+                            let cellVal = r.cells[i] !== undefined ? r.cells[i] : '';
+                            if (cellVal.trim() === '') rowsHtml += `<div class="chord-pill empty-cell"></div>`;
+                            else rowsHtml += `<div class="chord-pill text-accent" style="font-size: ${globalFontSize}rem;">${escapeHtml(transposeSingleChordToken(cellVal, transposeOffset))}</div>`;
+                        }
                         rowsHtml += `</div>`;
-                        rowsHtml += `<div class="repeat-resizable-box" title="Drag bottom edge vertically to resize"><div class="repeat-label">×2</div></div>`;
-                        rowsHtml += `</div>`;
-                    } else {
-                        rows.forEach(r => {
-                            rowsHtml += `<div class="strict-4col-grid">`;
-                            for(let i=0; i<4; i++) {
-                                let cellVal = r.cells[i] !== undefined ? r.cells[i] : '';
-                                if (cellVal.trim() === '') {
-                                    rowsHtml += `<div class="chord-pill empty-cell"></div>`;
-                                } else {
-                                    const transposedCell = transposeSingleChordToken(cellVal, transposeOffset);
-                                    rowsHtml += `<div class="chord-pill text-accent" style="font-size: ${globalFontSize}rem;">${escapeHtml(transposedCell)}</div>`;
-                                }
-                            }
-                            rowsHtml += `</div>`;
-                        });
-                    }
+                    });
                     rowsHtml += '</div>';
                     innerHtml += rowsHtml;
                 }
-
                 card.innerHTML = innerHtml;
                 container.appendChild(card);
             });
@@ -868,14 +803,11 @@
             if (!currentSong || !currentSong.sections[sIdx]) return;
             const sec = currentSong.sections[sIdx];
             const proLines = getProLinesForSection(sec);
-
             textOnlyTarget = { mode: 'stage', sectionIndex: sIdx, cardElement: null };
             document.getElementById('text-only-sec-name').innerText = sec.name;
             document.getElementById('text-only-textarea').value = proLines.map(l => l.text || '').join('\n');
-
             const modal = document.getElementById('text-only-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
             document.getElementById('text-only-textarea').focus();
         }
 
@@ -884,23 +816,17 @@
             if (!card) return;
             const secName = card.querySelector('.sec-name-input').value || 'Section';
             const textInputs = card.querySelectorAll('.pro-text-input');
-            const existingLines = Array.from(textInputs).map(input => input.value);
-
             textOnlyTarget = { mode: 'builder', sectionIndex: null, cardElement: card };
             document.getElementById('text-only-sec-name').innerText = secName;
-            document.getElementById('text-only-textarea').value = existingLines.join('\n');
-
+            document.getElementById('text-only-textarea').value = Array.from(textInputs).map(i => i.value).join('\n');
             const modal = document.getElementById('text-only-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
             document.getElementById('text-only-textarea').focus();
         }
 
         function closeTextOnlyModal() {
-            const modal = document.getElementById('text-only-modal');
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-            textOnlyTarget = { mode: null, sectionIndex: null, cardElement: null };
+            document.getElementById('text-only-modal').classList.remove('flex');
+            document.getElementById('text-only-modal').classList.add('hidden');
         }
 
         function saveTextOnlyModal() {
@@ -916,36 +842,24 @@
                         chords: existingProLines[idx] ? existingProLines[idx].chords : '',
                         text: lyricLine
                     }));
-                    saveSongsToStorage();
+                    saveSongToFirestore(currentSong);
                     switchViewMode('professional');
                     displaySong(currentSong);
                 }
             } else if (textOnlyTarget.mode === 'builder' && textOnlyTarget.cardElement) {
                 const card = textOnlyTarget.cardElement;
                 const proList = card.querySelector('.pro-lines-list');
-                const existingChordInputs = card.querySelectorAll('.pro-chord-input');
-                const existingChords = Array.from(existingChordInputs).map(input => input.value);
-
+                const existingChords = Array.from(card.querySelectorAll('.pro-chord-input')).map(i => i.value);
                 proList.innerHTML = '';
                 pastedLines.forEach((lyricLine, idx) => {
-                    const preservedChord = existingChords[idx] !== undefined ? existingChords[idx] : '';
-                    appendProLineDom(proList, preservedChord, lyricLine);
+                    appendProLineDom(proList, existingChords[idx] || '', lyricLine);
                 });
-
-                if (modalEditorMode !== 'professional') {
-                    setModalEditorMode('professional');
-                }
             }
-
             closeTextOnlyModal();
         }
 
         function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
         function transposeSong(val) {
@@ -965,11 +879,8 @@
         function toggleCurrentSongInSetlist() {
             if (!currentSong) return;
             const index = sundaySetlist.findIndex(s => s.id === currentSong.id);
-            if (index > -1) {
-                sundaySetlist.splice(index, 1);
-            } else {
-                sundaySetlist.push(currentSong);
-            }
+            if (index > -1) sundaySetlist.splice(index, 1);
+            else sundaySetlist.push(currentSong);
             localStorage.setItem('faith_setlist', JSON.stringify(sundaySetlist));
             updateSetlistBadge();
             updateSetlistButtonState();
@@ -1004,11 +915,7 @@
                 sundaySetlist.forEach((song, idx) => {
                     const isCurrent = currentSong && currentSong.id === song.id;
                     const row = document.createElement('div');
-                    row.className = `flex justify-between items-center border p-3 rounded-xl cursor-pointer transition ${
-                        isCurrent
-                            ? 'bg-purple-600/20 border-purple-500 text-white'
-                            : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800 text-slate-200'
-                    }`;
+                    row.className = `flex justify-between items-center border p-3 rounded-xl cursor-pointer transition ${isCurrent ? 'bg-purple-600/20 border-purple-500 text-white' : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800 text-slate-200'}`;
                     row.onclick = () => navigateFromSetlist(song.id);
                     row.innerHTML = `
                         <div class="flex items-center gap-3 flex-1 min-w-0">
@@ -1019,8 +926,8 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-semibold text-purple-400 flex items-center gap-1"><i class="fa-solid fa-play"></i> Open</span>
-                            <button onclick="event.stopPropagation(); removeFromSetlist('${song.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1" title="Remove from Setlist"><i class="fa-solid fa-trash"></i></button>
+                            <span class="text-[10px] font-semibold text-purple-400">Open</span>
+                            <button onclick="event.stopPropagation(); removeFromSetlist('${song.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     `;
                     container.appendChild(row);
@@ -1068,19 +975,14 @@
             if (mode === 'casual') {
                 btnCasual.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white transition";
                 btnPro.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
-                label.innerText = "Song Sections (Strict 4 columns. Use `||` for blank cells)";
+                label.innerText = "Song Sections (Strict 4 columns)";
             } else {
                 btnPro.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white transition";
                 btnCasual.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
-                label.innerText = "Song Sections (Professional: Chords & `|` bars align 1:1 with the text below)";
+                label.innerText = "Song Sections (Professional: Chords & `|` bars align 1:1)";
             }
-
-            document.querySelectorAll('.casual-editor-area').forEach(el => {
-                el.classList.toggle('hidden', mode !== 'casual');
-            });
-            document.querySelectorAll('.pro-editor-area').forEach(el => {
-                el.classList.toggle('hidden', mode !== 'professional');
-            });
+            document.querySelectorAll('.casual-editor-area').forEach(el => el.classList.toggle('hidden', mode !== 'casual'));
+            document.querySelectorAll('.pro-editor-area').forEach(el => el.classList.toggle('hidden', mode !== 'professional'));
         }
 
         function openSongModal() {
@@ -1089,21 +991,10 @@
             document.getElementById('form-title').value = '';
             document.getElementById('form-key').value = 'C';
             document.getElementById('form-tempo').value = '120';
-            
             const container = document.getElementById('builder-sections-container');
             container.innerHTML = '';
-
             setModalEditorMode(currentViewMode);
-
-            addSectionBox(
-                'CHORUS',
-                '1 || 3M | x2\n3 || |\n2M || 2\n2M | 3 ||',
-                [
-                    { chords: 'F                                  |   C', text: 'முழு மனதாய் ஸ்தோத்தரிப்பேன் நான் -2' },
-                    { chords: 'Dm                    |  Em', text: 'ஆராய்ந்து முடியாத அதிசயங்கள் செய்தீரே' }
-                ]
-            );
-
+            addSectionBox('CHORUS', '1 || 3M', [{ chords: 'F        | C', text: 'முழு மனதாய் ஸ்தோத்தரிப்பேன்' }]);
             document.getElementById('song-modal').classList.remove('hidden');
             document.getElementById('song-modal').classList.add('flex');
         }
@@ -1115,24 +1006,14 @@
             document.getElementById('form-title').value = currentSong.title;
             document.getElementById('form-key').value = currentSong.key;
             document.getElementById('form-tempo').value = currentSong.tempo.replace(' BPM', '');
-
             const container = document.getElementById('builder-sections-container');
             container.innerHTML = '';
-
             setModalEditorMode(currentViewMode);
 
             currentSong.sections.forEach(sec => {
-                let linesStr = (sec.rows || []).map(r => {
-                    let cellStrs = r.cells.map(c => c === '' ? '' : c);
-                    let line = cellStrs.join(' | ');
-                    if(r.repeat > 1) line += ` | x${r.repeat}`;
-                    return line;
-                }).join('\n');
-
-                const proLines = getProLinesForSection(sec);
-                addSectionBox(sec.name, linesStr, proLines);
+                let linesStr = (sec.rows || []).map(r => r.cells.join(' | ')).join('\n');
+                addSectionBox(sec.name, linesStr, getProLinesForSection(sec));
             });
-
             document.getElementById('song-modal').classList.remove('hidden');
             document.getElementById('song-modal').classList.add('flex');
         }
@@ -1142,64 +1023,38 @@
             document.getElementById('song-modal').classList.add('hidden');
         }
 
-        function addSectionBox(
-            name = 'Stanza',
-            casualContent = '1 || 3\n1M || 3M\n2M | 2 | 3 |',
-            proLines = [
-                { chords: 'C                     |  G', text: 'First line of lyrics or text...' },
-                { chords: 'Dm        | G         |  C', text: 'Second line of lyrics or text...' }
-            ]
-        ) {
+        function addSectionBox(name = 'Stanza', casualContent = '', proLines = [{ chords: 'C', text: 'Lyric' }]) {
             const container = document.getElementById('builder-sections-container');
             const div = document.createElement('div');
             div.className = 'section-builder-card bg-slate-800/80 border border-slate-700 p-4 rounded-xl space-y-3 relative';
-
             const isCasual = modalEditorMode === 'casual';
 
             div.innerHTML = `
                 <div class="flex flex-wrap justify-between items-center gap-2">
                     <input type="text" class="sec-name-input bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold text-amber-400 w-48 focus:outline-none focus:border-accent" value="${escapeHtml(name)}">
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="openBuilderTextOnlyModal(this)" class="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition flex items-center gap-1" title="Paste or edit stanza text only">
-                            <i class="fa-solid fa-paste"></i> Edit Text Only
-                        </button>
+                        <button type="button" onclick="openBuilderTextOnlyModal(this)" class="px-2.5 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition flex items-center gap-1"><i class="fa-solid fa-paste"></i> Edit Text Only</button>
                         <button type="button" onclick="this.closest('.section-builder-card').remove()" class="text-red-400 hover:text-red-300 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
-
                 <div class="casual-editor-area ${isCasual ? '' : 'hidden'} space-y-1.5">
-                    <textarea rows="3" onfocus="activeInput = this" class="sec-content-input exact-align-font w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-accent" placeholder="1 || 3">${escapeHtml(casualContent)}</textarea>
-                    <p class="text-[10px] text-slate-500">Tip: Use \`||\` between pipes for empty blank cells. End row with \`| x2\` for repeat.</p>
+                    <textarea rows="3" onfocus="activeInput = this" class="sec-content-input exact-align-font w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-accent">${escapeHtml(casualContent)}</textarea>
                 </div>
-
                 <div class="pro-editor-area ${isCasual ? 'hidden' : ''} space-y-2.5">
                     <div class="pro-lines-list space-y-2.5"></div>
-                    <button type="button" onclick="addProLinePair(this)" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-700 text-accent border border-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus"></i> Add Chord + Text Line
-                    </button>
+                    <button type="button" onclick="addProLinePair(this)" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-700 text-accent border border-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> Add Chord + Text Line</button>
                 </div>
             `;
-
             container.appendChild(div);
-
             const proList = div.querySelector('.pro-lines-list');
-            proLines.forEach(item => {
-                appendProLineDom(proList, item.chords, item.text);
-            });
-
-            activeInput = isCasual
-                ? div.querySelector('.sec-content-input')
-                : div.querySelector('.pro-chord-input');
+            proLines.forEach(item => appendProLineDom(proList, item.chords, item.text));
+            activeInput = isCasual ? div.querySelector('.sec-content-input') : div.querySelector('.pro-chord-input');
         }
 
         function addProLinePair(btnEl) {
-            const proList = btnEl.previousElementSibling;
-            const pairDiv = appendProLineDom(proList, '', '');
+            const pairDiv = appendProLineDom(btnEl.previousElementSibling, '', '');
             const chordInput = pairDiv.querySelector('.pro-chord-input');
-            if (chordInput) {
-                chordInput.focus();
-                activeInput = chordInput;
-            }
+            if (chordInput) { chordInput.focus(); activeInput = chordInput; }
         }
 
         function appendProLineDom(proListContainer, chordsVal = '', textVal = '') {
@@ -1208,13 +1063,12 @@
             pair.innerHTML = `
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-accent w-16 shrink-0"><i class="fa-solid fa-music mr-1"></i>Chords</span>
-                    <input type="text" onfocus="activeInput = this" class="pro-chord-input exact-align-font flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-accent focus:outline-none focus:border-accent" placeholder="e.g. F                        | C" value="${escapeHtml(chordsVal)}">
-                    <button type="button" onclick="this.closest('.pro-line-item').remove()" class="text-slate-500 hover:text-red-400 text-xs px-1.5 shrink-0" title="Remove this line pair"><i class="fa-solid fa-xmark"></i></button>
+                    <input type="text" onfocus="activeInput = this" class="pro-chord-input exact-align-font flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-accent focus:outline-none focus:border-accent" value="${escapeHtml(chordsVal)}">
+                    <button type="button" onclick="this.closest('.pro-line-item').remove()" class="text-slate-500 hover:text-red-400 text-xs px-1.5 shrink-0"><i class="fa-solid fa-xmark"></i></button>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 w-16 shrink-0"><i class="fa-solid fa-align-left mr-1"></i>Text</span>
-                    <input type="text" onfocus="activeInput = this" class="pro-text-input exact-align-font flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-200 focus:outline-none focus:border-amber-400" placeholder="Enter lyrics or text for this line..." value="${escapeHtml(textVal)}">
-                    <span class="w-5 shrink-0"></span>
+                    <input type="text" onfocus="activeInput = this" class="pro-text-input exact-align-font flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-200 focus:outline-none focus:border-amber-400" value="${escapeHtml(textVal)}">
                 </div>
             `;
             proListContainer.appendChild(pair);
@@ -1222,16 +1076,7 @@
         }
 
         function insertToken(token) {
-            if (!activeInput) {
-                if (modalEditorMode === 'casual') {
-                    const boxes = document.querySelectorAll('.sec-content-input');
-                    if (boxes.length > 0) activeInput = boxes[boxes.length - 1];
-                } else {
-                    const chordBoxes = document.querySelectorAll('.pro-chord-input');
-                    if (chordBoxes.length > 0) activeInput = chordBoxes[chordBoxes.length - 1];
-                }
-                if (!activeInput) return;
-            }
+            if (!activeInput) return;
             const start = activeInput.selectionStart || 0;
             const end = activeInput.selectionEnd || 0;
             const text = activeInput.value;
@@ -1253,87 +1098,40 @@
             sectionDivs.forEach(div => {
                 const name = div.querySelector('.sec-name-input').value;
                 const rawText = div.querySelector('.sec-content-input').value;
-                
                 let rows = [];
                 rawText.split('\n').forEach(line => {
                     if (line.trim()) {
-                        let repeatCount = 0;
-                        let cleanLine = line.trim();
-                        if (cleanLine.toLowerCase().endsWith('| x2') || cleanLine.toLowerCase().endsWith('×2')) {
-                            repeatCount = 2;
-                            cleanLine = cleanLine.substring(0, cleanLine.lastIndexOf('|') !== -1 ? cleanLine.lastIndexOf('|') : cleanLine.length).trim();
-                        }
-
-                        cleanLine = cleanLine.replace(/\|(?=\|)/g, '| ');
-
-                        let rowTokens = cleanLine.split('|').map(t => t.trim());
+                        let rowTokens = line.trim().split('|').map(t => t.trim());
                         let cells = [];
-                        for(let i=0; i<4; i++) {
-                            let val = rowTokens[i] !== undefined ? rowTokens[i] : '';
-                            cells.push(val);
-                        }
-                        rows.push({ cells, repeat: repeatCount });
+                        for(let i=0; i<4; i++) cells.push(rowTokens[i] || '');
+                        rows.push({ cells, repeat: 0 });
                     }
                 });
-                if(rows.length === 0) rows = [{ cells: ['1', '', '', ''], repeat: 0 }];
 
                 let proLines = [];
-                const proItems = div.querySelectorAll('.pro-line-item');
-                proItems.forEach(item => {
+                div.querySelectorAll('.pro-line-item').forEach(item => {
                     const chords = item.querySelector('.pro-chord-input').value;
                     const text = item.querySelector('.pro-text-input').value;
-                    if (chords.trim() !== '' || text.trim() !== '') {
-                        proLines.push({ chords, text });
-                    }
+                    if (chords.trim() !== '' || text.trim() !== '') proLines.push({ chords, text });
                 });
-                if (proLines.length === 0) {
-                    proLines = [{ chords: 'C', text: '' }];
-                }
-
                 sections.push({ name, rows, proLines });
             });
 
             switchViewMode(modalEditorMode);
 
-            if (editId) {
-                const song = songsDatabase.find(s => s.id === editId);
-                if (song) {
-                    song.title = title;
-                    song.key = key;
-                    song.tempo = tempo;
-                    song.mode = modalEditorMode;
-                    song.sections = sections;
-                }
-                const setIdx = sundaySetlist.findIndex(s => s.id === editId);
-                if (setIdx > -1 && song) {
-                    sundaySetlist[setIdx] = song;
-                    localStorage.setItem('faith_setlist', JSON.stringify(sundaySetlist));
-                }
-            } else {
-                const newSong = {
-                    id: Date.now().toString(),
-                    title,
-                    key,
-                    tempo,
-                    mode: modalEditorMode,
-                    sections
-                };
-                songsDatabase.unshift(newSong);
-                currentSong = newSong;
-            }
+            const songId = editId ? editId : Date.now().toString();
+            const savedSong = { id: songId, title, key, tempo, mode: modalEditorMode, sections };
 
-            saveSongsToStorage();
-            renderSongsList();
-            renderFullScreenSetlistPills();
+            saveSongToFirestore(savedSong);
             closeSongModal();
-            selectSong(currentSong.id);
+            selectSong(songId);
         }
 
         function editSectionName(sIdx) {
             const newName = prompt("Edit Section Heading:", currentSong.sections[sIdx].name);
             if (newName) {
                 currentSong.sections[sIdx].name = newName;
-                saveSongsToStorage();
+                saveSongToFirestore(currentSong);
                 displaySong(currentSong);
             }
         }
