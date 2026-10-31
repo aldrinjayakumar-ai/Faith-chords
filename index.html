@@ -161,6 +161,40 @@
             background-color: rgba(30, 41, 59, 0.45);
             border-color: rgba(51, 65, 85, 0.6);
         }
+
+        /* ===== Phone / landscape-phone layout: list OR lyrics, never both ===== */
+        .mobile-only { display: none; }
+        .sections-multicol { column-count: var(--cols, 1); column-gap: 1rem; }
+        .sec-card { break-inside: avoid; -webkit-column-break-inside: avoid; margin-bottom: 1rem; display: block; }
+        .fit-nowrap .pro-chord-line, .fit-nowrap .pro-lyric-line { white-space: pre; }
+        .fit-mode .sec-card { padding: 0.5rem 0.65rem !important; margin-bottom: 0.5rem; }
+        .fit-mode .sec-card > * + * { margin-top: 0.35rem !important; }
+        .fit-mode .sec-card h4 { font-size: 0.7rem; }
+        .fit-mode .pro-section-unified-box { padding: 0.35rem 0.55rem; }
+        .fit-mode .pro-line-group { padding: 0.1rem 0; }
+        .fit-mode .pro-line-group + .pro-line-group { margin-top: 0.2rem; }
+        .fit-mode .chord-pill { min-height: 32px; padding: 0.3rem 0.25rem; }
+        @media (max-width: 767px), (max-height: 520px) and (orientation: landscape) {
+            .mobile-only { display: inline-flex; }
+            .desk-only { display: none !important; }
+            .section-action-buttons { display: none !important; }
+            #left-sidebar { width: 100% !important; max-width: 100% !important; border-right: none; }
+            #songs-list { max-height: none !important; }
+            #main-stage-viewer { max-width: 100% !important; padding: 0.5rem !important; }
+            body.mobile-song-open #left-sidebar { display: none !important; }
+            body.mobile-song-open #top-app-header { display: none !important; }
+            body:not(.mobile-song-open) #main-stage-viewer { display: none !important; }
+            #song-metadata-header { padding: 0.5rem 0.65rem !important; gap: 0.4rem !important; border-radius: 0.75rem !important; }
+            #song-metadata-header > div:first-child > div:first-child { margin-bottom: 0.25rem !important; }
+            #display-title { font-size: 1.05rem !important; }
+            #display-mode-badge { display: none; }
+            #song-metadata-header button { padding: 0.3rem 0.5rem !important; font-size: 0.7rem !important; }
+            #song-metadata-header .w-9 { width: 1.75rem !important; height: 1.75rem !important; }
+            #song-metadata-header span#transpose-display { padding: 0.3rem 0.5rem !important; }
+            #display-tempo { padding: 0.15rem 0.5rem !important; font-size: 0.7rem !important; }
+            #song-display-area > * + * { margin-top: 0.4rem !important; }
+            body.stage-fullscreen-active #main-stage-viewer { padding: 3.6rem 0.5rem 0.5rem 0.5rem !important; }
+        }
     </style>
 
     <!-- Firebase SDK & Live Real-Time Connection -->
@@ -239,7 +273,7 @@
             </div>
 
             <!-- Mode Toggle -->
-            <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <div class="desk-only flex bg-slate-800 p-1 rounded-xl border border-slate-700">
                 <button id="btn-casual-mode" onclick="switchViewMode('casual')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
                     <i class="fa-solid fa-table-cells-large mr-1"></i> Casual
                 </button>
@@ -249,7 +283,7 @@
             </div>
 
             <!-- Transpose Controls -->
-            <div class="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-700 text-xs">
+            <div class="desk-only flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-700 text-xs">
                 <span class="text-slate-400 font-semibold mr-0.5"><i class="fa-solid fa-sliders mr-1 text-accent"></i>Transpose:</span>
                 <button onclick="transposeSong(-1)" class="w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold flex items-center justify-center transition" title="Transpose Down">-</button>
                 <span id="header-transpose-display" onclick="resetTranspose()" class="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded-md font-bold text-accent cursor-pointer min-w-[54px] text-center" title="Click to reset">Original</span>
@@ -257,14 +291,14 @@
             </div>
 
             <!-- Font Size Adjusters -->
-            <div class="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-xl border border-slate-700 text-xs">
+            <div class="desk-only flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-xl border border-slate-700 text-xs">
                 <span class="text-slate-400 font-semibold">Size:</span>
                 <button onclick="adjustFontSize(-1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition">A-</button>
                 <button onclick="adjustFontSize(1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition">A+</button>
             </div>
 
             <!-- Full Screen Button -->
-            <button onclick="toggleFullScreenMode()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg">
+            <button onclick="toggleFullScreenMode()" class="desk-only px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg">
                 <i class="fa-solid fa-expand"></i> Full Screen
             </button>
 
@@ -305,6 +339,7 @@
                 <div id="song-metadata-header" class="flex flex-wrap justify-between items-start gap-4 bg-cardbg p-6 rounded-2xl border border-slate-700 shadow-xl">
                     <div>
                         <div class="flex items-center gap-3 mb-3">
+                            <button type="button" id="btn-back-to-songs" onclick="showSongList()" class="mobile-only items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-white"><i class="fa-solid fa-chevron-left"></i> Songs</button>
                             <h2 id="display-title" class="text-3xl font-bold tracking-wide">Song Title</h2>
                             <span id="display-mode-badge" class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">Professional Mode</span>
                         </div>
@@ -315,6 +350,10 @@
                     </div>
 
                     <div class="flex items-center gap-3 flex-wrap">
+                        <button type="button" onclick="adjustFontSize(-1)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold transition">A-</button>
+                        <button type="button" onclick="adjustFontSize(1)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold transition">A+</button>
+                        <button type="button" id="btn-fit-toggle" onclick="toggleAutoFit()" title="Auto-fit the whole song on screen (no scrolling)" class="px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1.5"></button>
+                        <button type="button" onclick="openSetlistModal()" class="mobile-only items-center gap-1.5 px-3 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-calendar-days"></i></button>
                         <button onclick="toggleFullScreenMode()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-lg">
                             <i class="fa-solid fa-expand"></i> Full Screen
                         </button>
@@ -331,7 +370,7 @@
                 </div>
 
                 <!-- Sections Render Area -->
-                <div id="sections-container" class="space-y-6"></div>
+                <div id="sections-container" class="sections-multicol"></div>
             </div>
         </main>
     </div>
@@ -513,7 +552,7 @@
                             if (currentSong) {
                                 const updated = songsDatabase.find(s => s.id === currentSong.id);
                                 if (updated) { currentSong = updated; displaySong(updated); }
-                            } else if (songsDatabase.length > 0) {
+                            } else if (songsDatabase.length > 0 && !isMobileView()) {
                                 selectSong(songsDatabase[0].id);
                             }
                         }
@@ -538,6 +577,107 @@
                 deleteDoc(doc(window.db, "band_chords", songId)).catch(err => console.error("Firestore delete error:", err));
             }
         }
+
+        // ===== Phone navigation + auto-fit =====
+        let autoFit = true;
+        try { autoFit = JSON.parse(localStorage.getItem('faith_autofit') ?? 'true'); } catch (e) {}
+
+        function isMobileView() {
+            return window.matchMedia('(max-width: 767px), (max-height: 520px) and (orientation: landscape)').matches;
+        }
+
+        function openMobileSong() {
+            if (!isMobileView()) return;
+            if (!document.body.classList.contains('mobile-song-open')) {
+                document.body.classList.add('mobile-song-open');
+                try { history.pushState({ songOpen: true }, ''); } catch (e) {}
+            }
+            window.scrollTo(0, 0);
+        }
+
+        function showSongList() {
+            if (isStageFullScreen) exitStageFullScreen();
+            if (history.state && history.state.songOpen) history.back();
+            else document.body.classList.remove('mobile-song-open');
+            window.scrollTo(0, 0);
+        }
+
+        window.addEventListener('popstate', () => {
+            document.body.classList.remove('mobile-song-open');
+        });
+
+        function updateFitButton() {
+            const b = document.getElementById('btn-fit-toggle');
+            if (!b) return;
+            b.innerHTML = `<i class="fa-solid fa-maximize"></i> Fit: ${autoFit ? 'On' : 'Off'}`;
+            b.className = 'px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1.5 ' +
+                (autoFit ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300');
+        }
+
+        function toggleAutoFit() {
+            autoFit = !autoFit;
+            try { localStorage.setItem('faith_autofit', JSON.stringify(autoFit)); } catch (e) {}
+            updateFitButton();
+            fitLyricsToScreen();
+        }
+
+        // Picks the column count and the largest font size (up to the A+/A- size) at which
+        // the whole song fits the screen without scrolling or wrapping lines.
+        function fitLyricsToScreen() {
+            const c = document.getElementById('sections-container');
+            if (!c || !currentSong || c.offsetParent === null) return;
+            if (!autoFit) {
+                c.classList.remove('fit-mode', 'fit-nowrap');
+                c.style.setProperty('--cols', '1');
+                c.style.setProperty('--lyric-fs', globalFontSize + 'rem');
+                return;
+            }
+            c.classList.add('fit-mode', 'fit-nowrap');
+            const lines = Array.from(c.querySelectorAll('.pro-chord-line, .pro-lyric-line'));
+            const minFs = 0.8;
+            const maxFs = Math.max(globalFontSize, minFs);
+            const absTop = c.getBoundingClientRect().top + window.scrollY;
+            const availH = window.innerHeight - absTop - 12;
+            const maxCols = Math.max(1, Math.min(3, Math.floor((c.clientWidth + 16) / 276)));
+
+            const test = (cols, fs) => {
+                c.style.setProperty('--cols', cols);
+                c.style.setProperty('--lyric-fs', fs + 'rem');
+                return {
+                    okW: !lines.some(el => el.scrollWidth > el.clientWidth + 1),
+                    okH: c.scrollHeight <= availH
+                };
+            };
+            const search = (cols, needH) => {
+                const ok = fs => { const r = test(cols, fs); return r.okW && (!needH || r.okH); };
+                if (!ok(minFs)) return null;
+                if (ok(maxFs)) return maxFs;
+                let lo = minFs, hi = maxFs;
+                for (let i = 0; i < 8; i++) {
+                    const mid = (lo + hi) / 2;
+                    if (ok(mid)) lo = mid; else hi = mid;
+                }
+                return lo;
+            };
+
+            let best = null;
+            for (let cols = 1; cols <= maxCols; cols++) {
+                const fs = search(cols, true);
+                if (fs !== null && (!best || fs > best.fs + 0.02)) best = { cols, fs };
+            }
+            if (!best) {               // song too long for one screen: keep it readable, allow scrolling
+                const fs = search(1, false);
+                if (fs !== null) best = { cols: 1, fs };
+                else { best = { cols: 1, fs: minFs }; c.classList.remove('fit-nowrap'); }
+            }
+            test(best.cols, best.fs);
+        }
+
+        let fitResizeTimer = null;
+        function scheduleFit() { clearTimeout(fitResizeTimer); fitResizeTimer = setTimeout(fitLyricsToScreen, 150); }
+        window.addEventListener('resize', scheduleFit);
+        window.addEventListener('orientationchange', scheduleFit);
+        window.addEventListener('DOMContentLoaded', updateFitButton);
 
         function toggleFullScreenMode() {
             if (!isStageFullScreen) enterStageFullScreen();
@@ -704,6 +844,7 @@
         function selectSong(id) {
             const found = songsDatabase.find(s => s.id === id) || sundaySetlist.find(s => s.id === id);
             if (!found) return;
+            openMobileSong();
             currentSong = found;
             transposeOffset = 0;
             if (currentSong && currentSong.mode) switchViewMode(currentSong.mode);
@@ -757,7 +898,7 @@
 
             song.sections.forEach((sec, sIdx) => {
                 const card = document.createElement('div');
-                card.className = 'section-card-container bg-cardbg border border-slate-700 rounded-2xl p-4 md:p-6 shadow-xl space-y-4 overflow-hidden';
+                card.className = 'sec-card section-card-container bg-cardbg border border-slate-700 rounded-2xl p-4 md:p-6 shadow-xl space-y-4 overflow-hidden';
 
                 let innerHtml = `<div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-700 pb-3">
                     <h4 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-circle text-[8px] mr-2"></i> ${escapeHtml(sec.name)}</h4>
@@ -776,8 +917,8 @@
                         const lyricText = lineObj.text || '';
                         proHtml += `
                             <div class="pro-line-group">
-                                <div class="pro-chord-line exact-align-font" style="font-size: ${globalFontSize}rem;">${chordHtml}</div>
-                                <div class="pro-lyric-line exact-align-font" style="font-size: ${globalFontSize}rem;">${escapeHtml(lyricText)}</div>
+                                <div class="pro-chord-line exact-align-font" style="font-size: var(--lyric-fs, ${globalFontSize}rem);">${chordHtml}</div>
+                                <div class="pro-lyric-line exact-align-font" style="font-size: var(--lyric-fs, ${globalFontSize}rem);">${escapeHtml(lyricText)}</div>
                             </div>
                         `;
                     });
@@ -790,7 +931,7 @@
                         for(let i=0; i<4; i++) {
                             let cellVal = r.cells[i] !== undefined ? r.cells[i] : '';
                             if (cellVal.trim() === '') rowsHtml += `<div class="chord-pill empty-cell"></div>`;
-                            else rowsHtml += `<div class="chord-pill text-accent" style="font-size: ${globalFontSize}rem;">${escapeHtml(transposeSingleChordToken(cellVal, transposeOffset))}</div>`;
+                            else rowsHtml += `<div class="chord-pill text-accent" style="font-size: var(--lyric-fs, ${globalFontSize}rem);">${escapeHtml(transposeSingleChordToken(cellVal, transposeOffset))}</div>`;
                         }
                         rowsHtml += `</div>`;
                     });
@@ -800,6 +941,9 @@
                 card.innerHTML = innerHtml;
                 container.appendChild(card);
             });
+            fitLyricsToScreen();
+            requestAnimationFrame(fitLyricsToScreen);
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitLyricsToScreen);
         }
 
         function openStageTextOnlyModal(sIdx) {
