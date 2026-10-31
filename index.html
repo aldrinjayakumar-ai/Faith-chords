@@ -165,8 +165,8 @@
 
     <!-- Firebase SDK & Live Real-Time Connection -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA3IpIgET9whg1ADFZ0AwxMkODu6kGtkJo",
@@ -512,11 +512,14 @@
                             renderSongsList();
                             if (currentSong) {
                                 const updated = songsDatabase.find(s => s.id === currentSong.id);
-                                if (updated) displaySong(updated);
+                                if (updated) { currentSong = updated; displaySong(updated); }
                             } else if (songsDatabase.length > 0) {
                                 selectSong(songsDatabase[0].id);
                             }
                         }
+                    }, (err) => {
+                        console.error('Firestore listen error:', err);
+                        alert('Cloud sync error: ' + err.code + ' - check Firestore is created and rules allow read/write.');
                     });
                 }
             }, 100);
