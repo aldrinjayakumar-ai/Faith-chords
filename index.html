@@ -104,7 +104,7 @@
             border-top: 1px dashed rgba(51, 65, 85, 0.4);
         }
         .pro-chord-line {
-            color: #3b82f6;
+            color: #eab308;
             font-weight: 700;
             white-space: pre-wrap;
             line-height: 1.4;
@@ -135,10 +135,10 @@
             top: 0.1em;
             height: 2.6em;
             width: 2.5px;
-            background-color: #3b82f6;
+            background-color: #eab308;
             border-radius: 2px;
             pointer-events: none;
-            box-shadow: 0 0 5px rgba(59, 130, 246, 0.35);
+            box-shadow: 0 0 5px rgba(234, 179, 8, 0.35);
         }
 
         /* =====================================================
@@ -931,7 +931,7 @@
                         for(let i=0; i<4; i++) {
                             let cellVal = r.cells[i] !== undefined ? r.cells[i] : '';
                             if (cellVal.trim() === '') rowsHtml += `<div class="chord-pill empty-cell"></div>`;
-                            else rowsHtml += `<div class="chord-pill text-accent" style="font-size: var(--lyric-fs, ${globalFontSize}rem);">${escapeHtml(transposeSingleChordToken(cellVal, transposeOffset))}</div>`;
+                            else rowsHtml += `<div class="chord-pill" style="color: #eab308; font-size: var(--lyric-fs, ${globalFontSize}rem);">${escapeHtml(transposeSingleChordToken(cellVal, transposeOffset))}</div>`;
                         }
                         rowsHtml += `</div>`;
                     });
