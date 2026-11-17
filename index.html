@@ -134,10 +134,10 @@
         }
     </style>
 
-    <!-- Firebase SDK & Live Real-Time Connection -->
+    <!-- Firebase SDK & Live Real-Time Connection (Fixed valid version URLs) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA3IpIgET9whg1ADFZ0AwxMkODu6kGtkJo",
@@ -956,7 +956,7 @@
             const pair = document.createElement('div');
             pair.className = 'pro-line-item bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 space-y-2 relative';
             pair.innerHTML = `
-                <div class="flex items-center gap-2">
+                <div class="main-line-row flex items-center gap-2">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-accent w-16 shrink-0"><i class="fa-solid fa-music mr-1"></i>Chords</span>
                     <input type="text" class="pro-chord-input exact-align-font flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-accent focus:outline-none" value="${escapeHtml(chordsVal)}">
                     <button type="button" onclick="this.closest('.pro-line-item').remove()" class="text-slate-500 hover:text-red-400 text-xs px-1.5"><i class="fa-solid fa-xmark"></i></button>
