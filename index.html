@@ -205,12 +205,17 @@
             #song-display-area > * + * { margin-top: 0.4rem !important; }
             body.stage-fullscreen-active #main-stage-viewer { padding: 3.6rem 0.5rem 0.5rem 0.5rem !important; }
         }
+
+        /* ===== Party mode ===== */
+        html.party-follower { overflow: hidden !important; overscroll-behavior: none; }
+        #party-pill { position: fixed; left: 12px; bottom: 12px; z-index: 60; display: none; }
+        #party-toast { position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%); z-index: 90; display: none; max-width: 90vw; }
     </style>
 
     <!-- Firebase SDK & Live Real-Time Connection -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA3IpIgET9whg1ADFZ0AwxMkODu6kGtkJo",
@@ -226,7 +231,7 @@
         const db = getFirestore(app);
 
         window.db = db;
-        window.FirestoreSDK = { collection, onSnapshot, setDoc, doc, deleteDoc };
+        window.FirestoreSDK = { collection, onSnapshot, setDoc, doc, deleteDoc, getDoc };
     </script>
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen flex flex-col">
@@ -315,6 +320,11 @@
             <!-- Full Screen Button -->
             <button onclick="toggleFullScreenMode()" class="desk-only px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg">
                 <i class="fa-solid fa-expand"></i> Full Screen
+            </button>
+
+            <!-- Party Button -->
+            <button onclick="openPartyModal()" id="btn-party" class="px-3 py-1.5 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg">
+                <i class="fa-solid fa-champagne-glasses"></i> Party <span id="party-btn-badge" class="hidden px-1.5 py-0.5 bg-white/25 rounded-md text-[10px] font-bold"></span>
             </button>
 
             <!-- Sunday Setlist Button -->
@@ -502,6 +512,51 @@
                     <button onclick="clearSetlist()" class="px-3 py-1.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl text-xs font-semibold transition">Clear All</button>
                     <button onclick="exportSetlist()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition">Export Setlist</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PARTY UI -->
+    <div id="party-pill">
+        <button onclick="openPartyModal()" class="flex items-center gap-2 px-3 py-2 bg-pink-600 text-white rounded-full text-xs font-bold shadow-2xl border border-pink-300/40">
+            <i class="fa-solid fa-champagne-glasses"></i>
+            <span id="party-pill-text"></span>
+        </button>
+    </div>
+    <div id="party-toast" class="px-4 py-2 bg-slate-900 border border-slate-600 text-slate-100 text-xs font-semibold rounded-xl shadow-2xl"></div>
+
+    <div id="party-modal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/70 p-4">
+        <div class="w-full max-w-sm bg-cardbg border border-slate-700 rounded-2xl p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold"><i class="fa-solid fa-champagne-glasses text-pink-400 mr-2"></i>Party</h3>
+                <button onclick="closePartyModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div id="party-idle" class="space-y-4">
+                <button onclick="startParty()" class="w-full py-3 bg-pink-600 hover:bg-pink-500 rounded-xl font-bold text-sm">
+                    <i class="fa-solid fa-crown mr-2"></i>Start a party (I'm the host)
+                </button>
+                <div class="flex items-center gap-3 text-slate-500 text-xs"><div class="flex-1 h-px bg-slate-700"></div>or join one<div class="flex-1 h-px bg-slate-700"></div></div>
+                <div class="flex gap-2">
+                    <input id="party-code-input" maxlength="5" placeholder="CODE" autocapitalize="characters" autocomplete="off"
+                        class="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-center text-lg font-bold tracking-[0.3em] uppercase focus:outline-none focus:border-pink-500">
+                    <button onclick="joinPartyFromInput()" class="px-4 py-2 bg-accent hover:bg-blue-600 rounded-xl font-bold text-sm">Join</button>
+                </div>
+                <p id="party-error" class="text-xs text-red-400 hidden"></p>
+            </div>
+
+            <div id="party-active" class="space-y-4 hidden">
+                <div class="text-center">
+                    <div id="party-role-label" class="text-xs font-bold uppercase tracking-wider text-pink-400"></div>
+                    <div id="party-code-display" class="text-4xl font-extrabold tracking-[0.3em] mt-1"></div>
+                    <div id="party-members-label" class="text-xs text-slate-400 mt-1"></div>
+                </div>
+                <div id="party-host-tools" class="space-y-2">
+                    <button onclick="copyPartyLink()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-sm font-semibold"><i class="fa-solid fa-link mr-2"></i>Copy invite link</button>
+                    <p class="text-[11px] text-slate-500 text-center">Members who join will follow your song, key, view and scrolling.</p>
+                </div>
+                <p id="party-follower-note" class="text-[11px] text-slate-500 text-center hidden">Your screen mirrors the host. Song, key, view and scroll are controlled by the host.</p>
+                <button onclick="leaveParty()" id="party-leave-btn" class="w-full py-2.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl text-sm font-bold"></button>
             </div>
         </div>
     </div>
@@ -1469,6 +1524,213 @@
                 displaySong(currentSong);
             }
         }
+    </script>
+
+    <!-- PARTY MODE LOGIC -->
+    <script>
+    (function () {
+        const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        const store = (() => { try { sessionStorage.setItem('_t', '1'); sessionStorage.removeItem('_t'); return sessionStorage; } catch (e) { return {}; } })();
+        let myId = store.faith_member_id;
+        if (!myId) { myId = 'm' + Math.random().toString(36).slice(2, 10); try { store.faith_member_id = myId; } catch (e) {} }
+
+        const party = { code: null, role: null, unsubParty: null, unsubMembers: null, hb: null, ui: null };
+        let applyingRemote = false, pubTimer = null, lastRemote = null, retries = 0, members = [];
+        const $ = id => document.getElementById(id);
+
+        // ---------- helpers ----------
+        function toast(msg) {
+            const t = $('party-toast'); t.textContent = msg; t.style.display = 'block';
+            clearTimeout(toast._t); toast._t = setTimeout(() => { t.style.display = 'none'; }, 2600);
+        }
+        function sdk() { return window.FirestoreSDK; }
+        function partyRef(code) { return sdk().doc(window.db, 'parties', code); }
+        function memberRef(code, id) { return sdk().doc(window.db, 'parties', code, 'members', id); }
+        function scrollRatio() {
+            const max = document.documentElement.scrollHeight - window.innerHeight;
+            return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+        }
+        function showError(msg) { const e = $('party-error'); e.textContent = msg || ''; e.classList.toggle('hidden', !msg); }
+        function saveSession() {
+            try { if (party.code) store.faith_party = JSON.stringify({ code: party.code, role: party.role }); else delete store.faith_party; } catch (e) {}
+        }
+
+        // ---------- UI ----------
+        window.openPartyModal = function () { const m = $('party-modal'); m.classList.remove('hidden'); m.classList.add('flex'); showError(''); renderPartyUi(); };
+        window.closePartyModal = function () { const m = $('party-modal'); m.classList.add('hidden'); m.classList.remove('flex'); };
+        $('party-modal').addEventListener('click', e => { if (e.target.id === 'party-modal') closePartyModal(); });
+        $('party-code-input').addEventListener('keydown', e => { if (e.key === 'Enter') joinPartyFromInput(); });
+
+        function liveMembers() { const now = Date.now(); return members.filter(m => now - (m.lastSeen || 0) < 60000).length; }
+        function renderPartyUi() {
+            const inParty = !!party.code, host = party.role === 'host';
+            $('party-idle').classList.toggle('hidden', inParty);
+            $('party-active').classList.toggle('hidden', !inParty);
+            $('party-pill').style.display = inParty ? 'block' : 'none';
+            $('party-btn-badge').classList.toggle('hidden', !inParty);
+            document.documentElement.classList.toggle('party-follower', inParty && !host);
+            if (!inParty) return;
+            const n = liveMembers();
+            $('party-code-display').textContent = party.code;
+            $('party-role-label').textContent = host ? 'You are the host' : 'Following the host';
+            $('party-members-label').textContent = host ? (n + (n === 1 ? ' member' : ' members') + ' joined') : 'Live mirror on';
+            $('party-host-tools').classList.toggle('hidden', !host);
+            $('party-follower-note').classList.toggle('hidden', host);
+            $('party-leave-btn').textContent = host ? 'End party' : 'Leave party';
+            $('party-pill-text').textContent = (host ? 'Hosting ' : 'Following ') + party.code + (host ? ' · ' + n : '');
+            $('party-btn-badge').textContent = party.code;
+        }
+
+        // ---------- host: publish state ----------
+        function currentState() {
+            return { songId: currentSong ? currentSong.id : null, transpose: transposeOffset, mode: currentViewMode, scroll: scrollRatio(), updatedAt: Date.now() };
+        }
+        function schedulePublish() {
+            if (party.role !== 'host' || !party.code || pubTimer) return;
+            pubTimer = setTimeout(() => {
+                pubTimer = null;
+                if (party.role !== 'host' || !party.code) return;
+                sdk().setDoc(partyRef(party.code), currentState(), { merge: true }).catch(err => console.error('Party publish error:', err));
+            }, 250);
+        }
+        window.addEventListener('scroll', schedulePublish, { passive: true });
+        window.addEventListener('resize', schedulePublish);
+
+        // Wrap the app's own actions: host broadcasts them, followers can't change them.
+        function guard(name) {
+            const orig = window[name];
+            window[name] = function () {
+                if (party.role === 'follower' && !applyingRemote) { toast('The host controls this party'); return; }
+                const r = orig.apply(this, arguments);
+                schedulePublish();
+                return r;
+            };
+        }
+        ['selectSong', 'transposeSong', 'resetTranspose', 'switchViewMode'].forEach(n => { if (typeof window[n] === 'function') guard(n); });
+
+        // ---------- follower: apply host state ----------
+        function applyScroll(r) {
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                const max = document.documentElement.scrollHeight - window.innerHeight;
+                window.scrollTo({ top: Math.max(0, max) * r, behavior: 'smooth' });
+            }));
+        }
+        function applyState(s) {
+            if (!s) return;
+            lastRemote = s;
+            applyingRemote = true;
+            try {
+                if (s.songId && (!currentSong || currentSong.id !== s.songId)) selectSong(s.songId);
+                if (s.songId && (!currentSong || currentSong.id !== s.songId)) {
+                    if (retries++ < 10) setTimeout(() => { if (party.role === 'follower') applyState(lastRemote); }, 1000);
+                    else toast("This song isn't available on your device");
+                    return;
+                }
+                retries = 0;
+                if (currentSong) {
+                    if (typeof s.mode === 'string' && s.mode !== currentViewMode) switchViewMode(s.mode);
+                    if (typeof s.transpose === 'number' && s.transpose !== transposeOffset) {
+                        transposeOffset = s.transpose; updateTransposeLabels(); displaySong(currentSong);
+                    }
+                }
+            } finally { applyingRemote = false; }
+            if (typeof s.scroll === 'number') applyScroll(s.scroll);
+        }
+
+        // ---------- start / join / leave ----------
+        function genCode() { let c = ''; for (let i = 0; i < 5; i++) c += ALPHA[Math.floor(Math.random() * ALPHA.length)]; return c; }
+
+        function watchMembers(code) {
+            party.unsubMembers = sdk().onSnapshot(sdk().collection(window.db, 'parties', code, 'members'), snap => {
+                members = []; snap.forEach(d => members.push(d.data()));
+                renderPartyUi();
+            });
+            party.ui = setInterval(renderPartyUi, 15000);
+        }
+
+        window.startParty = async function () {
+            if (!window.db) { showError('Still connecting to cloud, try again in a moment.'); return; }
+            try {
+                let code = null;
+                for (let i = 0; i < 6 && !code; i++) { const c = genCode(); if (!(await sdk().getDoc(partyRef(c))).exists()) code = c; }
+                if (!code) throw new Error('no free code');
+                await sdk().setDoc(partyRef(code), Object.assign({ hostId: myId, createdAt: Date.now() }, currentState()));
+                party.code = code; party.role = 'host'; members = [];
+                watchMembers(code); saveSession(); renderPartyUi(); schedulePublish();
+                toast('Party started. Share the code ' + code);
+            } catch (err) { console.error(err); showError('Could not start party: ' + (err.code || err.message)); }
+        };
+
+        window.joinParty = async function (rawCode) {
+            const code = String(rawCode || '').trim().toUpperCase();
+            if (code.length !== 5) { showError('Enter the 5-character party code.'); return; }
+            if (!window.db) { showError('Still connecting to cloud, try again in a moment.'); return; }
+            try {
+                const snap = await sdk().getDoc(partyRef(code));
+                if (!snap.exists()) { showError('No party found with that code.'); return; }
+                party.code = code; party.role = 'follower'; retries = 0;
+                await sdk().setDoc(memberRef(code, myId), { joinedAt: Date.now(), lastSeen: Date.now() });
+                party.hb = setInterval(() => sdk().setDoc(memberRef(code, myId), { lastSeen: Date.now() }, { merge: true }).catch(() => {}), 20000);
+                party.unsubParty = sdk().onSnapshot(partyRef(code), d => {
+                    if (!d.exists()) { toast('The host ended the party'); teardown(); return; }
+                    applyState(d.data());
+                }, err => console.error('Party listen error:', err));
+                saveSession(); renderPartyUi(); closePartyModal();
+                toast('Joined party ' + code);
+            } catch (err) { console.error(err); party.code = null; party.role = null; showError('Could not join: ' + (err.code || err.message)); renderPartyUi(); }
+        };
+        window.joinPartyFromInput = function () { joinParty($('party-code-input').value); };
+
+        function teardown() {
+            if (party.unsubParty) party.unsubParty(); if (party.unsubMembers) party.unsubMembers();
+            clearInterval(party.hb); clearInterval(party.ui); clearTimeout(pubTimer); pubTimer = null;
+            party.unsubParty = party.unsubMembers = party.hb = party.ui = null;
+            party.code = null; party.role = null; members = []; lastRemote = null;
+            saveSession(); renderPartyUi();
+        }
+        window.leaveParty = async function () {
+            const code = party.code, role = party.role;
+            if (!code) return;
+            try {
+                if (role === 'host') await sdk().deleteDoc(partyRef(code));
+                else await sdk().deleteDoc(memberRef(code, myId));
+            } catch (err) { console.error(err); }
+            teardown(); closePartyModal();
+            toast(role === 'host' ? 'Party ended' : 'Left the party');
+        };
+        window.copyPartyLink = function () {
+            const url = location.origin + location.pathname + '?party=' + party.code;
+            const done = () => toast('Invite link copied');
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => prompt('Copy this link:', url));
+            else prompt('Copy this link:', url);
+        };
+        window.addEventListener('beforeunload', () => {
+            if (party.role === 'follower' && party.code && window.db) { try { sdk().deleteDoc(memberRef(party.code, myId)); } catch (e) {} }
+        });
+
+        // ---------- restore after refresh / open invite link ----------
+        window.addEventListener('DOMContentLoaded', () => {
+            const t = setInterval(async () => {
+                if (!window.FirestoreSDK || !window.db) return;
+                clearInterval(t);
+                const urlCode = (new URLSearchParams(location.search).get('party') || '').toUpperCase();
+                let saved = null; try { saved = JSON.parse(store.faith_party || 'null'); } catch (e) {}
+                if (urlCode) {
+                    openPartyModal(); $('party-code-input').value = urlCode;
+                    if (!saved || saved.code !== urlCode) await joinParty(urlCode);
+                    else saved.role === 'host' ? 0 : await joinParty(urlCode);
+                    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+                } else if (saved && saved.code) {
+                    if (saved.role === 'follower') joinParty(saved.code);
+                    else {
+                        const ok = (await sdk().getDoc(partyRef(saved.code))).exists();
+                        if (ok) { party.code = saved.code; party.role = 'host'; watchMembers(saved.code); renderPartyUi(); schedulePublish(); }
+                        else { saved = null; saveSession(); }
+                    }
+                }
+            }, 150);
+        });
+    })();
     </script>
 </body>
 </html>
