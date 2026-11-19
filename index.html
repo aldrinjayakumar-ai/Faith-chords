@@ -162,6 +162,16 @@
             border-color: rgba(51, 65, 85, 0.6);
         }
 
+
+        /* ===== Anchored chord rendering: each chord is pinned to a lyric syllable, so it
+           stays aligned on every device/font (PC, Android, iPhone) and wraps naturally ===== */
+        .anch-line { display: block; width: 100%; }
+        .anch-word { display: inline-block; white-space: nowrap; vertical-align: top; }
+        .anch-cell { display: inline-block; vertical-align: top; }
+        .anch-cell.has-bar { border-left: 2.5px solid #eab308; padding-left: 0.3em; margin-left: 0.1em; box-shadow: -1px 0 5px rgba(234, 179, 8, 0.3); }
+        .anch-chord { display: block; color: #eab308; font-weight: 700; line-height: 1.4; min-height: 1.4em; white-space: pre; padding-right: 0.45em; }
+        .anch-lyric { display: block; color: #f1f5f9; font-weight: 500; line-height: 1.5; min-height: 1.5em; white-space: pre; }
+
         /* ===== Phone / landscape-phone layout: list OR lyrics, never both ===== */
         .mobile-only { display: none; }
         .sections-multicol { column-count: var(--cols, 1); column-gap: 1rem; }
@@ -296,6 +306,11 @@
                 <button onclick="adjustFontSize(-1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition">A-</button>
                 <button onclick="adjustFontSize(1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition">A+</button>
             </div>
+
+            <!-- One-time: pin chords to lyrics so mobile matches PC -->
+            <button onclick="realignAllSongsForMobile()" class="desk-only px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg" title="Run once on your PC so chords line up on mobile">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Fix Mobile Alignment
+            </button>
 
             <!-- Full Screen Button -->
             <button onclick="toggleFullScreenMode()" class="desk-only px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg">
@@ -791,6 +806,166 @@
             return rawKey.replace(/^([A-G][#b]?)/, (match, root) => transposeSingleNote(root, semitones));
         }
 
+
+        // =====================================================================
+        // ANCHORED CHORDS  (fixes chords drifting out of place on mobile)
+        // The chord line you type is aligned by eye using PC fonts. We measure that
+        // alignment once (on the PC) and store WHICH SYLLABLE each chord/bar belongs to.
+        // Every device then draws the chord above that syllable, whatever its font.
+        // =====================================================================
+        function lineSig(chords, text) { return (chords || '') + '\u0001' + (text || ''); }
+
+        function splitGraphemes(str) {
+            if (window.Intl && Intl.Segmenter) {
+                return Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(str), s => s.segment);
+            }
+            const out = [];
+            for (const ch of Array.from(str)) {
+                if (out.length && /\p{M}/u.test(ch)) out[out.length - 1] += ch; else out.push(ch);
+            }
+            return out;
+        }
+
+        function isPhoneLayout() { return window.matchMedia('(max-width: 767px)').matches; }
+
+        function getMeasureHost() {
+            let h = document.getElementById('anchor-measure-host');
+            if (!h) {
+                h = document.createElement('div');
+                h.id = 'anchor-measure-host';
+                h.style.cssText = 'position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none;font-size:20px;';
+                document.body.appendChild(h);
+            }
+            return h;
+        }
+
+        // Returns [{i: syllable index, c: chord, b: 1 if a bar line sits before it}] or null
+        function computeLineMarks(chords, text) {
+            if (!chords || !chords.trim() || !text || !text.trim()) return null;
+            const host = getMeasureHost();
+            host.innerHTML = '';
+            const chordEl = document.createElement('div');
+            chordEl.className = 'exact-align-font';
+            chordEl.style.cssText = 'white-space:pre;font-weight:700;width:max-content;';
+            chordEl.textContent = 'M'.repeat(40);
+            const lyricEl = document.createElement('div');
+            lyricEl.className = 'exact-align-font';
+            lyricEl.style.cssText = 'white-space:pre;font-weight:500;width:max-content;';
+            lyricEl.textContent = text;
+            host.appendChild(chordEl);
+            host.appendChild(lyricEl);
+
+            const charW = chordEl.getBoundingClientRect().width / 40;
+            const g = splitGraphemes(text);
+            const node = lyricEl.firstChild;
+            const base = lyricEl.getBoundingClientRect().left;
+            const xs = [];
+            const range = document.createRange();
+            let off = 0;
+            for (const c of g) {
+                range.setStart(node, off);
+                range.setEnd(node, off + c.length);
+                const rects = range.getClientRects();
+                const rc = rects.length ? rects[0] : range.getBoundingClientRect();
+                xs.push(rc.left - base);
+                off += c.length;
+            }
+            xs.push(lyricEl.getBoundingClientRect().width);
+            host.innerHTML = '';
+
+            const nearest = x => {
+                let best = 0, bd = Infinity;
+                for (let k = 0; k < xs.length; k++) {
+                    const d = Math.abs(xs[k] - x);
+                    if (d < bd) { bd = d; best = k; }
+                }
+                return best;
+            };
+
+            const pieces = [];
+            const re = /\||[^\s|]+/g;
+            let m, pendingBar = null;
+            const flushBar = () => { if (pendingBar) { pieces.push({ b: 1, c: '', x: (pendingBar.col + 0.5) * charW }); pendingBar = null; } };
+            while ((m = re.exec(chords)) !== null) {
+                const tok = m[0], col = m.index;
+                if (tok === '|') { flushBar(); pendingBar = { col }; }
+                else if (/^[-\u2013\u2014_.~]+$/.test(tok)) { continue; }
+                else if (pendingBar && col - pendingBar.col <= 4) {
+                    pieces.push({ b: 1, c: tok, x: (pendingBar.col + 0.5) * charW });
+                    pendingBar = null;
+                } else {
+                    flushBar();
+                    pieces.push({ b: 0, c: tok, x: col * charW });
+                }
+            }
+            flushBar();
+
+            let prev = 0;
+            const marks = pieces.map(p => {
+                const i = Math.max(prev, nearest(p.x));
+                prev = i;
+                return { i, c: p.c, b: p.b };
+            });
+            return { marks, sig: lineSig(chords, text) };
+        }
+
+        function attachLineMarks(line) {
+            if (isPhoneLayout()) return;   // only measure on the PC where alignment looks right
+            const r = computeLineMarks(line.chords, line.text);
+            if (r) { line.marks = r.marks; line.sig = r.sig; }
+            else { delete line.marks; delete line.sig; }
+        }
+
+        function lineHasValidMarks(l) {
+            return !!(l && l.marks && l.sig === lineSig(l.chords, l.text) && (l.chords || '').trim() && (l.text || '').trim());
+        }
+
+        function renderAnchoredLine(lineObj) {
+            const g = splitGraphemes(lineObj.text);
+            const marks = lineObj.marks;
+            const pieces = [];
+            const first = marks.length ? marks[0].i : g.length;
+            if (first > 0 || marks.length === 0) pieces.push({ c: '', b: 0, t: g.slice(0, first).join('') });
+            marks.forEach((mk, k) => {
+                const end = k + 1 < marks.length ? marks[k + 1].i : g.length;
+                pieces.push({ c: mk.c, b: mk.b, t: g.slice(mk.i, end).join('') });
+            });
+            // keep the bar/chord right in front of the word: push leading spaces back to the previous piece
+            for (let k = 1; k < pieces.length; k++) {
+                const mm = pieces[k].t.match(/^\s+/);
+                if (mm) { pieces[k - 1].t += mm[0]; pieces[k].t = pieces[k].t.slice(mm[0].length); }
+            }
+            const cells = [];
+            pieces.forEach(p => {
+                const chunks = p.t.match(/\S+\s*|\s+/g) || [''];
+                chunks.forEach((t, idx) => cells.push({ c: idx === 0 ? p.c : '', b: idx === 0 ? p.b : 0, t }));
+            });
+            let html = '', word = '';
+            cells.forEach((cell, k) => {
+                const chord = cell.c ? escapeHtml(transposeSingleChordToken(cell.c, transposeOffset)) : '&nbsp;';
+                word += `<span class="anch-cell${cell.b ? ' has-bar' : ''}"><span class="anch-chord">${chord}</span><span class="anch-lyric">${cell.t ? escapeHtml(cell.t) : '&nbsp;'}</span></span>`;
+                if (/\s$/.test(cell.t) || k === cells.length - 1) { html += `<span class="anch-word">${word}</span>`; word = ''; }
+            });
+            return html;
+        }
+
+        // One-time (run on PC): measure the alignment you already made and store it for every device
+        function realignAllSongsForMobile() {
+            if (isPhoneLayout()) { alert('Please run this on your PC / laptop, where the chords already look correctly aligned.'); return; }
+            if (!confirm('This reads the chord alignment as it looks on THIS screen and saves it for all devices (mobile included). Continue?')) return;
+            let lines = 0, songs = 0;
+            songsDatabase.forEach(song => {
+                let changed = false;
+                (song.sections || []).forEach(sec => (sec.proLines || []).forEach(l => {
+                    attachLineMarks(l);
+                    if (l.marks) { lines++; changed = true; }
+                }));
+                if (changed) { songs++; saveSongToFirestore(song); }
+            });
+            alert(`Done: ${lines} lines in ${songs} songs are now mobile-ready.`);
+            if (currentSong) { const u = songsDatabase.find(x => x.id === currentSong.id); if (u) currentSong = u; displaySong(currentSong); }
+        }
+
         function renderProChordLineHtml(chordLineStr) {
             const transposed = transposeChordLinePreservingAlignment(chordLineStr || '', transposeOffset);
             const escaped = escapeHtml(transposed);
@@ -913,6 +1088,13 @@
                     const proLines = getProLinesForSection(sec);
                     let proHtml = '<div class="pro-section-unified-box exact-align-font">';
                     proLines.forEach(lineObj => {
+                        if (lineHasValidMarks(lineObj)) {
+                            proHtml += `
+                            <div class="pro-line-group">
+                                <div class="anch-line exact-align-font" style="font-size: var(--lyric-fs, ${globalFontSize}rem);">${renderAnchoredLine(lineObj)}</div>
+                            </div>`;
+                            return;
+                        }
                         const chordHtml = renderProChordLineHtml(lineObj.chords || '');
                         const lyricText = lineObj.text || '';
                         proHtml += `
@@ -989,6 +1171,7 @@
                         chords: existingProLines[idx] ? existingProLines[idx].chords : '',
                         text: lyricLine
                     }));
+                    sec.proLines.forEach(attachLineMarks);
                     saveSongToFirestore(currentSong);
                     switchViewMode('professional');
                     displaySong(currentSong);
@@ -1259,7 +1442,11 @@
                 div.querySelectorAll('.pro-line-item').forEach(item => {
                     const chords = item.querySelector('.pro-chord-input').value;
                     const text = item.querySelector('.pro-text-input').value;
-                    if (chords.trim() !== '' || text.trim() !== '') proLines.push({ chords, text });
+                    if (chords.trim() !== '' || text.trim() !== '') {
+                        const pl = { chords, text };
+                        attachLineMarks(pl);
+                        proLines.push(pl);
+                    }
                 });
                 sections.push({ name, rows, proLines });
             });
