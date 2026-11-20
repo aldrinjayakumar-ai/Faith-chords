@@ -314,13 +314,13 @@
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-            <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-xs">
+            <div data-local-control="true" class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-xs">
                 <button onclick="transposeSong(-1)" class="w-6 h-6 bg-slate-800 hover:bg-slate-700 rounded font-bold">-</button>
                 <span id="fs-transpose-display" onclick="resetTranspose()" class="px-1.5 font-bold text-accent cursor-pointer text-center min-w-[44px]" title="Reset Transpose">Original</span>
                 <button onclick="transposeSong(1)" class="w-6 h-6 bg-slate-800 hover:bg-slate-700 rounded font-bold">+</button>
             </div>
 
-            <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-xs">
+            <div data-local-control="true" class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-xs">
                 <button onclick="adjustFontSize(-1)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded font-bold">A-</button>
                 <button onclick="adjustFontSize(1)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded font-bold">A+</button>
             </div>
@@ -354,6 +354,13 @@
                 <span>Live Cloud Sync</span>
             </div>
 
+            <!-- Screen Always-Awake Indicator -->
+            <button type="button" onclick="if (window.requestScreenWakeLock) window.requestScreenWakeLock()" title="Keeps your screen from turning off while this app is open"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700/80 rounded-full text-xs border border-slate-700 transition">
+                <span id="wakelock-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span id="wakelock-text" class="text-slate-200">Screen Awake</span>
+            </button>
+
             <!-- Mode Toggle -->
             <div class="desk-only flex bg-slate-800 p-1 rounded-xl border border-slate-700">
                 <button id="btn-casual-mode" onclick="switchViewMode('casual')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
@@ -365,7 +372,7 @@
             </div>
 
             <!-- Transpose Controls -->
-            <div class="desk-only flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-700 text-xs">
+            <div data-local-control="true" class="desk-only flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-700 text-xs">
                 <span class="text-slate-400 font-semibold mr-0.5"><i class="fa-solid fa-sliders mr-1 text-accent"></i>Transpose:</span>
                 <button onclick="transposeSong(-1)" class="w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold flex items-center justify-center transition" title="Transpose Down">-</button>
                 <span id="header-transpose-display" onclick="resetTranspose()" class="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded-md font-bold text-accent cursor-pointer min-w-[54px] text-center" title="Click to reset">Original</span>
@@ -373,7 +380,7 @@
             </div>
 
             <!-- Font Size Adjusters -->
-            <div class="desk-only flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-xl border border-slate-700 text-xs">
+            <div data-local-control="true" class="desk-only flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-xl border border-slate-700 text-xs">
                 <span class="text-slate-400 font-semibold">Size:</span>
                 <button onclick="adjustFontSize(-1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition">A-</button>
                 <button onclick="adjustFontSize(1)" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition">A+</button>
@@ -442,9 +449,9 @@
                     </div>
 
                     <div class="flex items-center gap-3 flex-wrap">
-                        <button type="button" onclick="adjustFontSize(-1)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold transition">A-</button>
-                        <button type="button" onclick="adjustFontSize(1)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold transition">A+</button>
-                        <button type="button" id="btn-fit-toggle" onclick="toggleAutoFit()" title="Auto-fit the whole song on screen (no scrolling)" class="px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1.5"></button>
+                        <button type="button" data-local-control="true" onclick="adjustFontSize(-1)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold transition">A-</button>
+                        <button type="button" data-local-control="true" onclick="adjustFontSize(1)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold transition">A+</button>
+                        <button type="button" data-local-control="true" id="btn-fit-toggle" onclick="toggleAutoFit()" title="Auto-fit the whole song on screen (no scrolling)" class="px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1.5"></button>
                         <button type="button" onclick="openSetlistModal()" class="mobile-only items-center gap-1.5 px-3 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-calendar-days"></i></button>
                         <button onclick="toggleFullScreenMode()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-lg">
                             <i class="fa-solid fa-expand"></i> Full Screen
@@ -455,9 +462,9 @@
                         <button id="btn-toggle-setlist" onclick="toggleCurrentSongInSetlist()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
                             <i class="fa-solid fa-bookmark"></i> <span id="setlist-toggle-text">Add to Setlist</span>
                         </button>
-                        <button onclick="transposeSong(-1)" class="w-9 h-9 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl flex items-center justify-center text-sm font-bold transition">-</button>
-                        <span id="transpose-display" onclick="resetTranspose()" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold cursor-pointer">Original</span>
-                        <button onclick="transposeSong(1)" class="w-9 h-9 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl flex items-center justify-center text-sm font-bold transition">+</button>
+                        <button data-local-control="true" onclick="transposeSong(-1)" class="w-9 h-9 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl flex items-center justify-center text-sm font-bold transition">-</button>
+                        <span data-local-control="true" id="transpose-display" onclick="resetTranspose()" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold cursor-pointer">Original</span>
+                        <button data-local-control="true" onclick="transposeSong(1)" class="w-9 h-9 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl flex items-center justify-center text-sm font-bold transition">+</button>
                     </div>
                 </div>
 
@@ -643,9 +650,9 @@
                 </div>
                 <div id="party-host-tools" class="space-y-2">
                     <button onclick="copyPartyLink()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-sm font-semibold"><i class="fa-solid fa-link mr-2"></i>Copy invite link</button>
-                    <p class="text-[11px] text-slate-500 text-center">Members follow your song, key, view &amp; scrolling. Laptop view shows a pale mobile coverage outline.</p>
+                    <p class="text-[11px] text-slate-500 text-center">Members follow your song, view &amp; scrolling while keeping their own chord transpose (- / +).</p>
                 </div>
-                <p id="party-follower-note" class="text-[11px] text-slate-500 text-center hidden">Your screen follows the host. Touch to scroll or check anything—it returns automatically when idle.</p>
+                <p id="party-follower-note" class="text-[11px] text-slate-500 text-center hidden">Your screen follows the host's song &amp; scroll. You can freely change chords (- / +) anytime without reverting.</p>
                 <button onclick="leaveParty()" id="party-leave-btn" class="w-full py-2.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl text-sm font-bold"></button>
             </div>
         </div>
@@ -1226,7 +1233,10 @@
             if (!found) return;
             openMobileSong();
             currentSong = found;
-            transposeOffset = 0;
+            // Restore band member's personal transpose for this song (never overridden by host)
+            transposeOffset = (typeof window.getSavedMemberTranspose === 'function')
+                ? window.getSavedMemberTranspose(found.id)
+                : 0;
             if (currentSong && currentSong.mode) switchViewMode(currentSong.mode);
             document.getElementById('no-song-selected').classList.add('hidden');
             document.getElementById('song-display-area').classList.remove('hidden');
@@ -1410,12 +1420,18 @@
             transposeOffset += val;
             if (transposeOffset > 11) transposeOffset -= 12;
             if (transposeOffset < -11) transposeOffset += 12;
+            if (currentSong && typeof window.setSavedMemberTranspose === 'function') {
+                window.setSavedMemberTranspose(currentSong.id, transposeOffset);
+            }
             updateTransposeLabels();
             if (currentSong) displaySong(currentSong);
         }
 
         function resetTranspose() {
             transposeOffset = 0;
+            if (currentSong && typeof window.setSavedMemberTranspose === 'function') {
+                window.setSavedMemberTranspose(currentSong.id, 0);
+            }
             updateTransposeLabels();
             if (currentSong) displaySong(currentSong);
         }
@@ -1685,7 +1701,110 @@
         }
     </script>
 
-    <!-- PARTY MODE LOGIC (Touch-to-Operate + Auto-Return + Host Laptop Mobile Guide) -->
+    <!-- SCREEN WAKE LOCK (Prevents Screen Sleep While Website Is Open) -->
+    <script>
+    (function () {
+        let wakeLock = null;
+        let fallbackVideo = null;
+        let fallbackActive = false;
+
+        function updateWakeBadge(active) {
+            const dot = document.getElementById('wakelock-dot');
+            const text = document.getElementById('wakelock-text');
+            if (!dot || !text) return;
+            if (active) {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+                text.textContent = 'Screen Awake';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+                text.textContent = 'Tap to Keep Awake';
+            }
+        }
+
+        function startFallbackKeepAwake() {
+            if (fallbackActive) return;
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 2;
+                canvas.height = 2;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, 2, 2);
+                }
+                if (typeof canvas.captureStream !== 'function') return;
+                const stream = canvas.captureStream(1);
+                const video = document.createElement('video');
+                video.muted = true;
+                video.playsInline = true;
+                video.loop = true;
+                video.setAttribute('playsinline', '');
+                video.setAttribute('muted', '');
+                video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0.001;pointer-events:none;bottom:0;left:0;z-index:-1;';
+                video.srcObject = stream;
+                document.body.appendChild(video);
+                const playPromise = video.play();
+                if (playPromise && typeof playPromise.then === 'function') {
+                    playPromise.then(() => {
+                        fallbackVideo = video;
+                        fallbackActive = true;
+                        updateWakeBadge(true);
+                    }).catch(() => { video.remove(); });
+                }
+            } catch (e) {}
+        }
+
+        async function requestScreenWakeLock() {
+            if (document.visibilityState !== 'visible') return;
+            if ('wakeLock' in navigator && navigator.wakeLock && typeof navigator.wakeLock.request === 'function') {
+                if (wakeLock && !wakeLock.released) {
+                    updateWakeBadge(true);
+                    return;
+                }
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    updateWakeBadge(true);
+                    wakeLock.addEventListener('release', () => {
+                        wakeLock = null;
+                        if (document.visibilityState === 'visible') {
+                            updateWakeBadge(fallbackActive);
+                        }
+                    });
+                    return;
+                } catch (err) {
+                    updateWakeBadge(fallbackActive);
+                }
+            } else {
+                startFallbackKeepAwake();
+            }
+        }
+
+        window.requestScreenWakeLock = requestScreenWakeLock;
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                requestScreenWakeLock();
+                if (fallbackVideo && fallbackVideo.paused) {
+                    fallbackVideo.play().catch(() => {});
+                }
+            }
+        });
+
+        window.addEventListener('focus', requestScreenWakeLock);
+
+        ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(evt => {
+            window.addEventListener(evt, () => {
+                if ((!wakeLock || wakeLock.released) && !fallbackActive) {
+                    requestScreenWakeLock();
+                }
+            }, { passive: true });
+        });
+
+        window.addEventListener('DOMContentLoaded', requestScreenWakeLock);
+    })();
+    </script>
+
+    <!-- PARTY MODE LOGIC (Touch-to-Operate + Auto-Return + Independent Member Transpose + Host Mobile Guide) -->
     <script>
     (function () {
         const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -1695,6 +1814,21 @@
 
         const party = { code: null, role: null, returnDelaySec: 3, unsubParty: null, unsubMembers: null, hb: null, ui: null };
         let applyingRemote = false, pubTimer = null, lastRemote = null, retries = 0, members = [];
+
+        // Per-song personal transpose memory for band members (never reverted by host)
+        let memberSongTranspose = {};
+        try { memberSongTranspose = JSON.parse(store.faith_member_transpose || '{}') || {}; } catch (e) { memberSongTranspose = {}; }
+
+        window.getSavedMemberTranspose = function (songId) {
+            if (party.role !== 'follower' || !songId) return 0;
+            const val = memberSongTranspose[songId];
+            return typeof val === 'number' ? val : 0;
+        };
+        window.setSavedMemberTranspose = function (songId, offset) {
+            if (party.role !== 'follower' || !songId) return;
+            memberSongTranspose[songId] = offset;
+            try { store.faith_member_transpose = JSON.stringify(memberSongTranspose); } catch (e) {}
+        };
 
         // Follower temporary touch-to-operate state
         let memberInteracting = false;
@@ -1777,8 +1911,6 @@
             const bottomPad = 14;
             const availH = Math.max(140, window.innerHeight - topBound - bottomPad);
 
-            // Default matches phone landscape coverage on laptop (~68% of visible stage height).
-            // If mobile members are connected, adapt dynamically to their real screen coverage ratio.
             let coverageRatio = 0.68;
             const now = Date.now();
             const activeMobileMembers = members.filter(m =>
@@ -1892,8 +2024,9 @@
             }
         }
 
+        // Ignore personal controls (Hide UI, Party UI, Transpose -/+, Font Size, Auto-Fit)
         function isIgnoredControlTarget(target) {
-            return !!(target && target.closest && target.closest('#btn-toggle-ui-visibility, #party-pill, #party-modal'));
+            return !!(target && target.closest && target.closest('#btn-toggle-ui-visibility, #party-pill, #party-modal, [data-local-control="true"]'));
         }
 
         function onFollowerPointerDown(e) {
@@ -1930,7 +2063,6 @@
         function currentState() {
             return {
                 songId: currentSong ? currentSong.id : null,
-                transpose: transposeOffset,
                 mode: currentViewMode,
                 scroll: scrollRatio(),
                 returnDelaySec: party.returnDelaySec,
@@ -1952,7 +2084,7 @@
             sendMemberHeartbeat();
         });
 
-        // Wrap app actions: host broadcasts them; followers can use them temporarily until auto-return.
+        // Wrap song & view actions (transpose stays completely independent for every member)
         function guard(name) {
             const orig = window[name];
             window[name] = function () {
@@ -1965,9 +2097,9 @@
                 return r;
             };
         }
-        ['selectSong', 'transposeSong', 'resetTranspose', 'switchViewMode'].forEach(n => { if (typeof window[n] === 'function') guard(n); });
+        ['selectSong', 'switchViewMode'].forEach(n => { if (typeof window[n] === 'function') guard(n); });
 
-        // ---------- follower: apply host state ----------
+        // ---------- follower: apply host state (never overwrites member's transpose) ----------
         function applyScroll(r) {
             ignoreScrollUntil = Date.now() + 900;
             requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -1983,7 +2115,6 @@
                 party.returnDelaySec = clampDelay(s.returnDelaySec);
                 renderPartyUi();
             }
-            // If member is currently touching/operating their screen, wait until auto-return timer finishes
             if (memberInteracting) return;
 
             applyingRemote = true;
@@ -2002,9 +2133,7 @@
                 retries = 0;
                 if (currentSong) {
                     if (typeof s.mode === 'string' && s.mode !== currentViewMode) switchViewMode(s.mode);
-                    if (typeof s.transpose === 'number' && s.transpose !== transposeOffset) {
-                        transposeOffset = s.transpose; updateTransposeLabels(); displaySong(currentSong);
-                    }
+                    // Member transpose is intentionally NOT overwritten here
                 }
             } finally { applyingRemote = false; }
             if (typeof s.scroll === 'number') applyScroll(s.scroll);
@@ -2062,6 +2191,11 @@
                 pointerDown = false;
                 clearFollowerTimers();
 
+                // Remember current local transpose if member already adjusted chords before joining
+                if (currentSong && transposeOffset !== 0) {
+                    window.setSavedMemberTranspose(currentSong.id, transposeOffset);
+                }
+
                 await sdk().setDoc(memberRef(code, myId), {
                     joinedAt: Date.now(),
                     lastSeen: Date.now(),
@@ -2075,7 +2209,7 @@
                     applyState(d.data());
                 }, err => console.error('Party listen error:', err));
                 saveSession(); renderPartyUi(); closePartyModal();
-                toast(`Joined party ${code} (returns after ${party.returnDelaySec}s idle)`);
+                toast(`Joined party ${code} · your chords stay independent`);
             } catch (err) { console.error(err); party.code = null; party.role = null; showError('Could not join: ' + (err.code || err.message)); renderPartyUi(); }
         };
         window.joinPartyFromInput = function () { joinParty($('party-code-input').value); };
