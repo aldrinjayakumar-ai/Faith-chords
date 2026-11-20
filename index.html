@@ -162,7 +162,6 @@
             border-color: rgba(51, 65, 85, 0.6);
         }
 
-
         /* ===== Anchored chord rendering: each chord is pinned to a lyric syllable, so it
            stays aligned on every device/font (PC, Android, iPhone) and wraps naturally ===== */
         .anch-line { display: block; width: 100%; }
@@ -206,10 +205,66 @@
             body.stage-fullscreen-active #main-stage-viewer { padding: 3.6rem 0.5rem 0.5rem 0.5rem !important; }
         }
 
+        /* =====================================================
+           HIDE UI MODE (Clean Lyrics Only - Zero Clutter)
+           ===================================================== */
+        body.ui-hidden-mode #top-app-header,
+        body.ui-hidden-mode #left-sidebar,
+        body.ui-hidden-mode #song-metadata-header,
+        body.ui-hidden-mode #fullscreen-hud,
+        body.ui-hidden-mode .section-action-buttons,
+        body.ui-hidden-mode #party-pill {
+            display: none !important;
+        }
+        body.ui-hidden-mode #main-stage-viewer {
+            max-width: 100% !important;
+            padding: 0.6rem 0.85rem !important;
+        }
+        #btn-toggle-ui-visibility {
+            position: fixed;
+            right: 12px;
+            bottom: 12px;
+            z-index: 75;
+            transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
+        }
+        body.ui-hidden-mode #btn-toggle-ui-visibility {
+            opacity: 0.38;
+        }
+        body.ui-hidden-mode #btn-toggle-ui-visibility:hover,
+        body.ui-hidden-mode #btn-toggle-ui-visibility:active {
+            opacity: 0.95;
+        }
+
         /* ===== Party mode ===== */
-        html.party-follower { overflow: hidden !important; overscroll-behavior: none; }
+        html.party-follower { overscroll-behavior: contain; }
         #party-pill { position: fixed; left: 12px; bottom: 12px; z-index: 60; display: none; }
         #party-toast { position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%); z-index: 90; display: none; max-width: 90vw; }
+
+        /* ===== Host Laptop: Pale Mobile Viewport Guide Box ===== */
+        #host-mobile-guide-box {
+            position: fixed;
+            z-index: 40;
+            pointer-events: none;
+            user-select: none;
+            display: none;
+            border: 1.5px solid rgba(56, 189, 248, 0.38);
+            border-radius: 0.5rem;
+            background: rgba(56, 189, 248, 0.015);
+            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.08);
+            transition: top 0.08s linear, height 0.15s ease, left 0.15s ease, width 0.15s ease;
+        }
+        #host-mobile-guide-box .guide-tag {
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(56, 189, 248, 0.45);
+            pointer-events: none;
+            user-select: none;
+        }
     </style>
 
     <!-- Firebase SDK & Live Real-Time Connection -->
@@ -235,6 +290,18 @@
     </script>
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen flex flex-col">
+
+    <!-- HOST LAPTOP MOBILE-VIEWPORT GUIDE OUTLINE (Non-interactive) -->
+    <div id="host-mobile-guide-box" aria-hidden="true">
+        <span class="guide-tag">Mobile view</span>
+    </div>
+
+    <!-- FLOATING HIDE / UNHIDE UI BUTTON -->
+    <button id="btn-toggle-ui-visibility" type="button" onclick="toggleUiVisibility()" title="Hide or show interface controls"
+        class="hidden items-center gap-1.5 px-2.5 py-1.5 bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-600/70 rounded-full text-[11px] font-semibold shadow-xl backdrop-blur-md">
+        <i id="ui-toggle-icon" class="fa-solid fa-eye-slash"></i>
+        <span id="ui-toggle-label">Hide UI</span>
+    </button>
 
     <!-- FULL SCREEN FLOATING HUD & SETLIST BAR -->
     <div id="fullscreen-hud" class="hidden fixed top-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 flex-wrap justify-between items-center gap-3 shadow-2xl">
@@ -533,7 +600,29 @@
             </div>
 
             <div id="party-idle" class="space-y-4">
-                <button onclick="startParty()" class="w-full py-3 bg-pink-600 hover:bg-pink-500 rounded-xl font-bold text-sm">
+                <!-- Pre-Party Host Settings (Locked once created) -->
+                <div class="bg-slate-900/75 border border-slate-700/80 rounded-xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="party-delay-input" class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock-rotate-left text-pink-400"></i>
+                            Member return time
+                        </label>
+                        <div class="flex items-center gap-1.5">
+                            <input id="party-delay-input" type="number" min="1" max="60" value="3" oninput="syncPartyDelayPresetButtons()"
+                                class="w-16 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-center text-xs font-bold text-white focus:outline-none focus:border-pink-500">
+                            <span class="text-xs text-slate-400 font-semibold">sec</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" data-delay="2" onclick="setPartyDelayPreset(2)" class="party-delay-preset flex-1 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] font-semibold text-slate-300 transition">2s</button>
+                        <button type="button" data-delay="3" onclick="setPartyDelayPreset(3)" class="party-delay-preset flex-1 py-1 bg-pink-600/30 border border-pink-500/60 rounded-lg text-[11px] font-bold text-pink-300 transition">3s</button>
+                        <button type="button" data-delay="5" onclick="setPartyDelayPreset(5)" class="party-delay-preset flex-1 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] font-semibold text-slate-300 transition">5s</button>
+                        <button type="button" data-delay="10" onclick="setPartyDelayPreset(10)" class="party-delay-preset flex-1 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] font-semibold text-slate-300 transition">10s</button>
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-snug">Members can touch to operate their screen, then auto-return to your view after this delay. Set once before creating.</p>
+                </div>
+
+                <button onclick="startParty()" class="w-full py-3 bg-pink-600 hover:bg-pink-500 rounded-xl font-bold text-sm transition shadow-lg">
                     <i class="fa-solid fa-crown mr-2"></i>Start a party (I'm the host)
                 </button>
                 <div class="flex items-center gap-3 text-slate-500 text-xs"><div class="flex-1 h-px bg-slate-700"></div>or join one<div class="flex-1 h-px bg-slate-700"></div></div>
@@ -550,12 +639,13 @@
                     <div id="party-role-label" class="text-xs font-bold uppercase tracking-wider text-pink-400"></div>
                     <div id="party-code-display" class="text-4xl font-extrabold tracking-[0.3em] mt-1"></div>
                     <div id="party-members-label" class="text-xs text-slate-400 mt-1"></div>
+                    <div id="party-delay-badge" class="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-300"></div>
                 </div>
                 <div id="party-host-tools" class="space-y-2">
                     <button onclick="copyPartyLink()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-sm font-semibold"><i class="fa-solid fa-link mr-2"></i>Copy invite link</button>
-                    <p class="text-[11px] text-slate-500 text-center">Members who join will follow your song, key, view and scrolling.</p>
+                    <p class="text-[11px] text-slate-500 text-center">Members follow your song, key, view &amp; scrolling. Laptop view shows a pale mobile coverage outline.</p>
                 </div>
-                <p id="party-follower-note" class="text-[11px] text-slate-500 text-center hidden">Your screen mirrors the host. Song, key, view and scroll are controlled by the host.</p>
+                <p id="party-follower-note" class="text-[11px] text-slate-500 text-center hidden">Your screen follows the host. Touch to scroll or check anything—it returns automatically when idle.</p>
                 <button onclick="leaveParty()" id="party-leave-btn" class="w-full py-2.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl text-sm font-bold"></button>
             </div>
         </div>
@@ -571,6 +661,7 @@
         let badgeFontSize = 0.85;
         let activeInput = null;
         let isStageFullScreen = false;
+        let isUiHidden = false;
         let sundaySetlist = JSON.parse(localStorage.getItem('faith_setlist') || '[]');
         let textOnlyTarget = { mode: null, sectionIndex: null, cardElement: null };
 
@@ -648,6 +739,38 @@
             }
         }
 
+        // ===== Hide / Unhide UI Toggle =====
+        function updateUiToggleVisibilityButton() {
+            const btn = document.getElementById('btn-toggle-ui-visibility');
+            const icon = document.getElementById('ui-toggle-icon');
+            const label = document.getElementById('ui-toggle-label');
+            if (!btn) return;
+            const showBtn = !!currentSong && (!isMobileView() || document.body.classList.contains('mobile-song-open'));
+            btn.classList.toggle('hidden', !showBtn);
+            btn.classList.toggle('inline-flex', showBtn);
+            if (isUiHidden) {
+                icon.className = 'fa-solid fa-eye';
+                label.classList.add('hidden');
+                btn.setAttribute('title', 'Show UI controls');
+            } else {
+                icon.className = 'fa-solid fa-eye-slash';
+                label.classList.remove('hidden');
+                label.textContent = 'Hide UI';
+                btn.setAttribute('title', 'Hide UI controls');
+            }
+        }
+
+        function toggleUiVisibility() {
+            isUiHidden = !isUiHidden;
+            document.body.classList.toggle('ui-hidden-mode', isUiHidden);
+            updateUiToggleVisibilityButton();
+            fitLyricsToScreen();
+            requestAnimationFrame(() => {
+                fitLyricsToScreen();
+                if (window.updateMobileGuideBox) window.updateMobileGuideBox();
+            });
+        }
+
         // ===== Phone navigation + auto-fit =====
         let autoFit = true;
         try { autoFit = JSON.parse(localStorage.getItem('faith_autofit') ?? 'true'); } catch (e) {}
@@ -662,18 +785,29 @@
                 document.body.classList.add('mobile-song-open');
                 try { history.pushState({ songOpen: true }, ''); } catch (e) {}
             }
+            updateUiToggleVisibilityButton();
             window.scrollTo(0, 0);
         }
 
         function showSongList() {
+            if (isUiHidden) {
+                isUiHidden = false;
+                document.body.classList.remove('ui-hidden-mode');
+            }
             if (isStageFullScreen) exitStageFullScreen();
             if (history.state && history.state.songOpen) history.back();
             else document.body.classList.remove('mobile-song-open');
+            updateUiToggleVisibilityButton();
             window.scrollTo(0, 0);
         }
 
         window.addEventListener('popstate', () => {
             document.body.classList.remove('mobile-song-open');
+            if (isUiHidden && isMobileView()) {
+                isUiHidden = false;
+                document.body.classList.remove('ui-hidden-mode');
+            }
+            updateUiToggleVisibilityButton();
         });
 
         function updateFitButton() {
@@ -689,6 +823,7 @@
             try { localStorage.setItem('faith_autofit', JSON.stringify(autoFit)); } catch (e) {}
             updateFitButton();
             fitLyricsToScreen();
+            if (window.updateMobileGuideBox) window.updateMobileGuideBox();
         }
 
         // Picks the column count and the largest font size (up to the A+/A- size) at which
@@ -744,10 +879,20 @@
         }
 
         let fitResizeTimer = null;
-        function scheduleFit() { clearTimeout(fitResizeTimer); fitResizeTimer = setTimeout(fitLyricsToScreen, 150); }
+        function scheduleFit() {
+            clearTimeout(fitResizeTimer);
+            fitResizeTimer = setTimeout(() => {
+                fitLyricsToScreen();
+                updateUiToggleVisibilityButton();
+                if (window.updateMobileGuideBox) window.updateMobileGuideBox();
+            }, 150);
+        }
         window.addEventListener('resize', scheduleFit);
         window.addEventListener('orientationchange', scheduleFit);
-        window.addEventListener('DOMContentLoaded', updateFitButton);
+        window.addEventListener('DOMContentLoaded', () => {
+            updateFitButton();
+            updateUiToggleVisibilityButton();
+        });
 
         function toggleFullScreenMode() {
             if (!isStageFullScreen) enterStageFullScreen();
@@ -761,6 +906,10 @@
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(() => {});
             }
+            requestAnimationFrame(() => {
+                fitLyricsToScreen();
+                if (window.updateMobileGuideBox) window.updateMobileGuideBox();
+            });
         }
 
         function exitStageFullScreen() {
@@ -769,6 +918,10 @@
             if (document.fullscreenElement && document.exitFullscreen) {
                 document.exitFullscreen().catch(() => {});
             }
+            requestAnimationFrame(() => {
+                fitLyricsToScreen();
+                if (window.updateMobileGuideBox) window.updateMobileGuideBox();
+            });
         }
 
         document.addEventListener('fullscreenchange', () => {
@@ -776,6 +929,10 @@
                 isStageFullScreen = false;
                 document.body.classList.remove('stage-fullscreen-active');
             }
+            requestAnimationFrame(() => {
+                fitLyricsToScreen();
+                if (window.updateMobileGuideBox) window.updateMobileGuideBox();
+            });
         });
 
         function renderFullScreenSetlistPills() {
@@ -861,12 +1018,8 @@
             return rawKey.replace(/^([A-G][#b]?)/, (match, root) => transposeSingleNote(root, semitones));
         }
 
-
         // =====================================================================
         // ANCHORED CHORDS  (fixes chords drifting out of place on mobile)
-        // The chord line you type is aligned by eye using PC fonts. We measure that
-        // alignment once (on the PC) and store WHICH SYLLABLE each chord/bar belongs to.
-        // Every device then draws the chord above that syllable, whatever its font.
         // =====================================================================
         function lineSig(chords, text) { return (chords || '') + '\u0001' + (text || ''); }
 
@@ -894,7 +1047,6 @@
             return h;
         }
 
-        // Returns [{i: syllable index, c: chord, b: 1 if a bar line sits before it}] or null
         function computeLineMarks(chords, text) {
             if (!chords || !chords.trim() || !text || !text.trim()) return null;
             const host = getMeasureHost();
@@ -965,7 +1117,7 @@
         }
 
         function attachLineMarks(line) {
-            if (isPhoneLayout()) return;   // only measure on the PC where alignment looks right
+            if (isPhoneLayout()) return;
             const r = computeLineMarks(line.chords, line.text);
             if (r) { line.marks = r.marks; line.sig = r.sig; }
             else { delete line.marks; delete line.sig; }
@@ -985,7 +1137,6 @@
                 const end = k + 1 < marks.length ? marks[k + 1].i : g.length;
                 pieces.push({ c: mk.c, b: mk.b, t: g.slice(mk.i, end).join('') });
             });
-            // keep the bar/chord right in front of the word: push leading spaces back to the previous piece
             for (let k = 1; k < pieces.length; k++) {
                 const mm = pieces[k].t.match(/^\s+/);
                 if (mm) { pieces[k - 1].t += mm[0]; pieces[k].t = pieces[k].t.slice(mm[0].length); }
@@ -1004,7 +1155,6 @@
             return html;
         }
 
-        // One-time (run on PC): measure the alignment you already made and store it for every device
         function realignAllSongsForMobile() {
             if (isPhoneLayout()) { alert('Please run this on your PC / laptop, where the chords already look correctly aligned.'); return; }
             if (!confirm('This reads the chord alignment as it looks on THIS screen and saves it for all devices (mobile included). Continue?')) return;
@@ -1084,6 +1234,7 @@
             renderSongsList(document.getElementById('search-input').value);
             updateSetlistButtonState();
             renderFullScreenSetlistPills();
+            updateUiToggleVisibilityButton();
         }
 
         function getProLinesForSection(sec) {
@@ -1179,8 +1330,16 @@
                 container.appendChild(card);
             });
             fitLyricsToScreen();
-            requestAnimationFrame(fitLyricsToScreen);
-            if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitLyricsToScreen);
+            requestAnimationFrame(() => {
+                fitLyricsToScreen();
+                if (window.updateMobileGuideBox) window.updateMobileGuideBox();
+            });
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(() => {
+                    fitLyricsToScreen();
+                    if (window.updateMobileGuideBox) window.updateMobileGuideBox();
+                });
+            }
         }
 
         function openStageTextOnlyModal(sIdx) {
@@ -1526,7 +1685,7 @@
         }
     </script>
 
-    <!-- PARTY MODE LOGIC -->
+    <!-- PARTY MODE LOGIC (Touch-to-Operate + Auto-Return + Host Laptop Mobile Guide) -->
     <script>
     (function () {
         const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -1534,8 +1693,18 @@
         let myId = store.faith_member_id;
         if (!myId) { myId = 'm' + Math.random().toString(36).slice(2, 10); try { store.faith_member_id = myId; } catch (e) {} }
 
-        const party = { code: null, role: null, unsubParty: null, unsubMembers: null, hb: null, ui: null };
+        const party = { code: null, role: null, returnDelaySec: 3, unsubParty: null, unsubMembers: null, hb: null, ui: null };
         let applyingRemote = false, pubTimer = null, lastRemote = null, retries = 0, members = [];
+
+        // Follower temporary touch-to-operate state
+        let memberInteracting = false;
+        let pointerDown = false;
+        let returnTimer = null;
+        let countdownTick = null;
+        let returnEndsAt = 0;
+        let ignoreScrollUntil = 0;
+        let guideRaf = null;
+
         const $ = id => document.getElementById(id);
 
         // ---------- helpers ----------
@@ -1554,6 +1723,96 @@
         function saveSession() {
             try { if (party.code) store.faith_party = JSON.stringify({ code: party.code, role: party.role }); else delete store.faith_party; } catch (e) {}
         }
+        function clampDelay(val) {
+            const n = Math.round(Number(val));
+            return Number.isFinite(n) ? Math.min(60, Math.max(1, n)) : 3;
+        }
+
+        // ---------- Pre-party delay preset buttons ----------
+        window.syncPartyDelayPresetButtons = function () {
+            const inp = $('party-delay-input');
+            const cur = Number(inp ? inp.value : 3);
+            document.querySelectorAll('.party-delay-preset').forEach(btn => {
+                const active = Number(btn.dataset.delay) === cur;
+                btn.className = 'party-delay-preset flex-1 py-1 rounded-lg text-[11px] transition ' + (active
+                    ? 'bg-pink-600/30 border border-pink-500/60 font-bold text-pink-300'
+                    : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 font-semibold text-slate-300');
+            });
+        };
+        window.setPartyDelayPreset = function (sec) {
+            const inp = $('party-delay-input');
+            if (inp) inp.value = sec;
+            syncPartyDelayPresetButtons();
+        };
+
+        // ---------- Host Laptop: Mobile Viewport Outline Guide ----------
+        function updateMobileGuideBox() {
+            const box = $('host-mobile-guide-box');
+            if (!box) return;
+            const sec = $('sections-container');
+            const songArea = $('song-display-area');
+            const shouldShow =
+                party.role === 'host' &&
+                !isMobileView() &&
+                !!currentSong &&
+                songArea && !songArea.classList.contains('hidden') &&
+                sec && sec.getBoundingClientRect().width > 0;
+
+            if (!shouldShow) {
+                box.style.display = 'none';
+                return;
+            }
+
+            let topBound = 10;
+            if (!document.body.classList.contains('ui-hidden-mode')) {
+                if (document.body.classList.contains('stage-fullscreen-active')) {
+                    const hud = $('fullscreen-hud');
+                    if (hud) topBound = Math.max(10, Math.round(hud.getBoundingClientRect().bottom) + 8);
+                } else {
+                    const hdr = $('top-app-header');
+                    if (hdr) topBound = Math.max(10, Math.round(hdr.getBoundingClientRect().bottom) + 8);
+                }
+            }
+
+            const bottomPad = 14;
+            const availH = Math.max(140, window.innerHeight - topBound - bottomPad);
+
+            // Default matches phone landscape coverage on laptop (~68% of visible stage height).
+            // If mobile members are connected, adapt dynamically to their real screen coverage ratio.
+            let coverageRatio = 0.68;
+            const now = Date.now();
+            const activeMobileMembers = members.filter(m =>
+                (now - (m.lastSeen || 0) < 60000) && m.isMobile && m.vh > 0 && m.sh > 0
+            );
+            if (activeMobileMembers.length > 0) {
+                const avgMobFrac = activeMobileMembers.reduce((sum, m) => sum + Math.min(1, m.vh / m.sh), 0) / activeMobileMembers.length;
+                const hostFrac = Math.min(1, window.innerHeight / Math.max(1, document.documentElement.scrollHeight));
+                if (hostFrac > 0.05) {
+                    coverageRatio = Math.min(0.92, Math.max(0.38, avgMobFrac / hostFrac));
+                }
+            }
+
+            const boxH = Math.round(availH * coverageRatio);
+            const boxTop = Math.round(topBound + scrollRatio() * Math.max(0, availH - boxH));
+            const secRect = sec.getBoundingClientRect();
+            const boxLeft = Math.max(8, Math.round(secRect.left - 6));
+            const boxWidth = Math.max(160, Math.min(window.innerWidth - boxLeft - 10, Math.round(secRect.width + 12)));
+
+            box.style.display = 'block';
+            box.style.left = boxLeft + 'px';
+            box.style.top = boxTop + 'px';
+            box.style.width = boxWidth + 'px';
+            box.style.height = boxH + 'px';
+        }
+        window.updateMobileGuideBox = updateMobileGuideBox;
+
+        function scheduleGuideUpdate() {
+            if (guideRaf) return;
+            guideRaf = requestAnimationFrame(() => {
+                guideRaf = null;
+                updateMobileGuideBox();
+            });
+        }
 
         // ---------- UI ----------
         window.openPartyModal = function () { const m = $('party-modal'); m.classList.remove('hidden'); m.classList.add('flex'); showError(''); renderPartyUi(); };
@@ -1562,6 +1821,19 @@
         $('party-code-input').addEventListener('keydown', e => { if (e.key === 'Enter') joinPartyFromInput(); });
 
         function liveMembers() { const now = Date.now(); return members.filter(m => now - (m.lastSeen || 0) < 60000).length; }
+        function updateFollowerPillText() {
+            if (party.role !== 'follower' || !party.code) return;
+            if (memberInteracting) {
+                if (pointerDown) {
+                    $('party-pill-text').textContent = 'Free view · release to return';
+                } else {
+                    const left = Math.max(1, Math.ceil((returnEndsAt - Date.now()) / 1000));
+                    $('party-pill-text').textContent = `Returning in ${left}s · ${party.code}`;
+                }
+            } else {
+                $('party-pill-text').textContent = 'Following ' + party.code;
+            }
+        }
         function renderPartyUi() {
             const inParty = !!party.code, host = party.role === 'host';
             $('party-idle').classList.toggle('hidden', inParty);
@@ -1569,23 +1841,104 @@
             $('party-pill').style.display = inParty ? 'block' : 'none';
             $('party-btn-badge').classList.toggle('hidden', !inParty);
             document.documentElement.classList.toggle('party-follower', inParty && !host);
+            updateMobileGuideBox();
             if (!inParty) return;
             const n = liveMembers();
             $('party-code-display').textContent = party.code;
             $('party-role-label').textContent = host ? 'You are the host' : 'Following the host';
             $('party-members-label').textContent = host ? (n + (n === 1 ? ' member' : ' members') + ' joined') : 'Live mirror on';
+            $('party-delay-badge').innerHTML = `<i class="fa-solid fa-clock-rotate-left text-pink-400"></i> Auto-return: ${party.returnDelaySec}s`;
             $('party-host-tools').classList.toggle('hidden', !host);
             $('party-follower-note').classList.toggle('hidden', host);
             $('party-leave-btn').textContent = host ? 'End party' : 'Leave party';
-            $('party-pill-text').textContent = (host ? 'Hosting ' : 'Following ') + party.code + (host ? ' · ' + n : '');
+            if (host) $('party-pill-text').textContent = 'Hosting ' + party.code + ' · ' + n;
+            else updateFollowerPillText();
             $('party-btn-badge').textContent = party.code;
         }
 
+        // ---------- Follower: Touch-to-Operate & Auto-Return ----------
+        function clearFollowerTimers() {
+            clearTimeout(returnTimer); returnTimer = null;
+            clearInterval(countdownTick); countdownTick = null;
+        }
+
+        function startReturnCountdown() {
+            clearFollowerTimers();
+            if (party.role !== 'follower' || !memberInteracting || pointerDown) return;
+            const ms = clampDelay(party.returnDelaySec) * 1000;
+            returnEndsAt = Date.now() + ms;
+            updateFollowerPillText();
+            countdownTick = setInterval(updateFollowerPillText, 250);
+            returnTimer = setTimeout(() => {
+                clearFollowerTimers();
+                memberInteracting = false;
+                pointerDown = false;
+                updateFollowerPillText();
+                if (typeof closeSetlistModal === 'function') closeSetlistModal();
+                if (lastRemote && party.role === 'follower') {
+                    applyState(lastRemote);
+                }
+            }, ms);
+        }
+
+        function triggerMemberInteraction(holdOpen) {
+            if (party.role !== 'follower' || applyingRemote) return;
+            memberInteracting = true;
+            if (holdOpen) {
+                clearFollowerTimers();
+                updateFollowerPillText();
+            } else {
+                startReturnCountdown();
+            }
+        }
+
+        function isIgnoredControlTarget(target) {
+            return !!(target && target.closest && target.closest('#btn-toggle-ui-visibility, #party-pill, #party-modal'));
+        }
+
+        function onFollowerPointerDown(e) {
+            if (party.role !== 'follower' || isIgnoredControlTarget(e.target)) return;
+            pointerDown = true;
+            triggerMemberInteraction(true);
+        }
+        function onFollowerPointerUp() {
+            if (party.role !== 'follower' || !pointerDown) return;
+            pointerDown = false;
+            if (memberInteracting) startReturnCountdown();
+        }
+        function onFollowerWheelOrKey(e) {
+            if (party.role !== 'follower' || isIgnoredControlTarget(e.target)) return;
+            triggerMemberInteraction(false);
+        }
+        function onFollowerScroll() {
+            if (party.role !== 'follower') return;
+            if (Date.now() < ignoreScrollUntil) return;
+            triggerMemberInteraction(pointerDown);
+        }
+
+        window.addEventListener('touchstart', onFollowerPointerDown, { passive: true });
+        window.addEventListener('touchend', onFollowerPointerUp, { passive: true });
+        window.addEventListener('touchcancel', onFollowerPointerUp, { passive: true });
+        window.addEventListener('pointerdown', onFollowerPointerDown, { passive: true });
+        window.addEventListener('pointerup', onFollowerPointerUp, { passive: true });
+        window.addEventListener('pointercancel', onFollowerPointerUp, { passive: true });
+        window.addEventListener('wheel', onFollowerWheelOrKey, { passive: true });
+        window.addEventListener('keydown', onFollowerWheelOrKey);
+        window.addEventListener('scroll', onFollowerScroll, { passive: true });
+
         // ---------- host: publish state ----------
         function currentState() {
-            return { songId: currentSong ? currentSong.id : null, transpose: transposeOffset, mode: currentViewMode, scroll: scrollRatio(), updatedAt: Date.now() };
+            return {
+                songId: currentSong ? currentSong.id : null,
+                transpose: transposeOffset,
+                mode: currentViewMode,
+                scroll: scrollRatio(),
+                returnDelaySec: party.returnDelaySec,
+                updatedAt: Date.now()
+            };
         }
         function schedulePublish() {
+            scheduleGuideUpdate();
             if (party.role !== 'host' || !party.code || pubTimer) return;
             pubTimer = setTimeout(() => {
                 pubTimer = null;
@@ -1594,13 +1947,19 @@
             }, 250);
         }
         window.addEventListener('scroll', schedulePublish, { passive: true });
-        window.addEventListener('resize', schedulePublish);
+        window.addEventListener('resize', () => {
+            schedulePublish();
+            sendMemberHeartbeat();
+        });
 
-        // Wrap the app's own actions: host broadcasts them, followers can't change them.
+        // Wrap app actions: host broadcasts them; followers can use them temporarily until auto-return.
         function guard(name) {
             const orig = window[name];
             window[name] = function () {
-                if (party.role === 'follower' && !applyingRemote) { toast('The host controls this party'); return; }
+                if (party.role === 'follower' && !applyingRemote) {
+                    triggerMemberInteraction(false);
+                    return orig.apply(this, arguments);
+                }
                 const r = orig.apply(this, arguments);
                 schedulePublish();
                 return r;
@@ -1610,7 +1969,9 @@
 
         // ---------- follower: apply host state ----------
         function applyScroll(r) {
+            ignoreScrollUntil = Date.now() + 900;
             requestAnimationFrame(() => requestAnimationFrame(() => {
+                ignoreScrollUntil = Date.now() + 900;
                 const max = document.documentElement.scrollHeight - window.innerHeight;
                 window.scrollTo({ top: Math.max(0, max) * r, behavior: 'smooth' });
             }));
@@ -1618,9 +1979,21 @@
         function applyState(s) {
             if (!s) return;
             lastRemote = s;
+            if (typeof s.returnDelaySec === 'number') {
+                party.returnDelaySec = clampDelay(s.returnDelaySec);
+                renderPartyUi();
+            }
+            // If member is currently touching/operating their screen, wait until auto-return timer finishes
+            if (memberInteracting) return;
+
             applyingRemote = true;
             try {
-                if (s.songId && (!currentSong || currentSong.id !== s.songId)) selectSong(s.songId);
+                if (s.songId && (!currentSong || currentSong.id !== s.songId)) {
+                    selectSong(s.songId);
+                } else if (s.songId && isMobileView() && !document.body.classList.contains('mobile-song-open')) {
+                    openMobileSong();
+                }
+
                 if (s.songId && (!currentSong || currentSong.id !== s.songId)) {
                     if (retries++ < 10) setTimeout(() => { if (party.role === 'follower') applyState(lastRemote); }, 1000);
                     else toast("This song isn't available on your device");
@@ -1637,6 +2010,16 @@
             if (typeof s.scroll === 'number') applyScroll(s.scroll);
         }
 
+        function sendMemberHeartbeat() {
+            if (party.role !== 'follower' || !party.code || !window.db) return;
+            sdk().setDoc(memberRef(party.code, myId), {
+                lastSeen: Date.now(),
+                isMobile: isMobileView(),
+                vh: window.innerHeight,
+                sh: document.documentElement.scrollHeight
+            }, { merge: true }).catch(() => {});
+        }
+
         // ---------- start / join / leave ----------
         function genCode() { let c = ''; for (let i = 0; i < 5; i++) c += ALPHA[Math.floor(Math.random() * ALPHA.length)]; return c; }
 
@@ -1650,6 +2033,8 @@
 
         window.startParty = async function () {
             if (!window.db) { showError('Still connecting to cloud, try again in a moment.'); return; }
+            const delayInp = $('party-delay-input');
+            party.returnDelaySec = clampDelay(delayInp ? delayInp.value : 3);
             try {
                 let code = null;
                 for (let i = 0; i < 6 && !code; i++) { const c = genCode(); if (!(await sdk().getDoc(partyRef(c))).exists()) code = c; }
@@ -1657,7 +2042,7 @@
                 await sdk().setDoc(partyRef(code), Object.assign({ hostId: myId, createdAt: Date.now() }, currentState()));
                 party.code = code; party.role = 'host'; members = [];
                 watchMembers(code); saveSession(); renderPartyUi(); schedulePublish();
-                toast('Party started. Share the code ' + code);
+                toast(`Party ${code} started (auto-return: ${party.returnDelaySec}s)`);
             } catch (err) { console.error(err); showError('Could not start party: ' + (err.code || err.message)); }
         };
 
@@ -1668,15 +2053,29 @@
             try {
                 const snap = await sdk().getDoc(partyRef(code));
                 if (!snap.exists()) { showError('No party found with that code.'); return; }
-                party.code = code; party.role = 'follower'; retries = 0;
-                await sdk().setDoc(memberRef(code, myId), { joinedAt: Date.now(), lastSeen: Date.now() });
-                party.hb = setInterval(() => sdk().setDoc(memberRef(code, myId), { lastSeen: Date.now() }, { merge: true }).catch(() => {}), 20000);
+                const initialData = snap.data() || {};
+                party.code = code;
+                party.role = 'follower';
+                party.returnDelaySec = clampDelay(initialData.returnDelaySec || 3);
+                retries = 0;
+                memberInteracting = false;
+                pointerDown = false;
+                clearFollowerTimers();
+
+                await sdk().setDoc(memberRef(code, myId), {
+                    joinedAt: Date.now(),
+                    lastSeen: Date.now(),
+                    isMobile: isMobileView(),
+                    vh: window.innerHeight,
+                    sh: document.documentElement.scrollHeight
+                });
+                party.hb = setInterval(sendMemberHeartbeat, 20000);
                 party.unsubParty = sdk().onSnapshot(partyRef(code), d => {
                     if (!d.exists()) { toast('The host ended the party'); teardown(); return; }
                     applyState(d.data());
                 }, err => console.error('Party listen error:', err));
                 saveSession(); renderPartyUi(); closePartyModal();
-                toast('Joined party ' + code);
+                toast(`Joined party ${code} (returns after ${party.returnDelaySec}s idle)`);
             } catch (err) { console.error(err); party.code = null; party.role = null; showError('Could not join: ' + (err.code || err.message)); renderPartyUi(); }
         };
         window.joinPartyFromInput = function () { joinParty($('party-code-input').value); };
@@ -1684,8 +2083,10 @@
         function teardown() {
             if (party.unsubParty) party.unsubParty(); if (party.unsubMembers) party.unsubMembers();
             clearInterval(party.hb); clearInterval(party.ui); clearTimeout(pubTimer); pubTimer = null;
+            clearFollowerTimers();
+            memberInteracting = false; pointerDown = false;
             party.unsubParty = party.unsubMembers = party.hb = party.ui = null;
-            party.code = null; party.role = null; members = []; lastRemote = null;
+            party.code = null; party.role = null; party.returnDelaySec = 3; members = []; lastRemote = null;
             saveSession(); renderPartyUi();
         }
         window.leaveParty = async function () {
@@ -1710,6 +2111,7 @@
 
         // ---------- restore after refresh / open invite link ----------
         window.addEventListener('DOMContentLoaded', () => {
+            syncPartyDelayPresetButtons();
             const t = setInterval(async () => {
                 if (!window.FirestoreSDK || !window.db) return;
                 clearInterval(t);
@@ -1723,9 +2125,17 @@
                 } else if (saved && saved.code) {
                     if (saved.role === 'follower') joinParty(saved.code);
                     else {
-                        const ok = (await sdk().getDoc(partyRef(saved.code))).exists();
-                        if (ok) { party.code = saved.code; party.role = 'host'; watchMembers(saved.code); renderPartyUi(); schedulePublish(); }
-                        else { saved = null; saveSession(); }
+                        const snap = await sdk().getDoc(partyRef(saved.code));
+                        if (snap.exists()) {
+                            party.code = saved.code;
+                            party.role = 'host';
+                            party.returnDelaySec = clampDelay((snap.data() || {}).returnDelaySec || 3);
+                            watchMembers(saved.code);
+                            renderPartyUi();
+                            schedulePublish();
+                        } else {
+                            saved = null; saveSession();
+                        }
                     }
                 }
             }, 150);
